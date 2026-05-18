@@ -85,11 +85,7 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
                     <Link
                       key={e.id}
                       href={e.href}
-                      className={`block text-[10px] leading-tight truncate rounded px-0.5 ${
-                        e.type === "company"
-                          ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                          : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                      }`}
+                      className={`block text-[10px] leading-tight truncate rounded px-0.5 ${getCalendarEventColor(e.type)}`}
                     >
                       {e.title}
                     </Link>
@@ -115,8 +111,29 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded bg-amber-500/50" /> タスク
           </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded bg-emerald-500/50" /> インターン
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded bg-pink-500/50" /> 面接
+          </span>
         </div>
       </Card>
     </div>
   );
+}
+
+function getCalendarEventColor(type: CalendarEvent["type"]): string {
+  switch (type) {
+    case "company":
+      return "bg-blue-500/10 text-blue-700 dark:text-blue-300";
+    case "task":
+      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    case "internship":
+      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    case "interview":
+      return "bg-pink-500/10 text-pink-700 dark:text-pink-300";
+    case "other":
+      return "bg-muted text-muted-foreground";
+  }
 }

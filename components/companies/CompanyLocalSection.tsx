@@ -16,7 +16,9 @@ export function CompanyLocalSection({ companyId }: { companyId: string }) {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setData(getCompanyLocalData(companyId));
+    queueMicrotask(() => {
+      setData(getCompanyLocalData(companyId));
+    });
   }, [companyId]);
 
   const save = () => {

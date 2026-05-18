@@ -39,6 +39,10 @@ export function CompanyForm({
       result: (form.get("result") as string) || null,
       salary: (form.get("salary") as string) || null,
       next_action: (form.get("next_action") as string) || null,
+      memo: (form.get("memo") as string) || null,
+      internship_name: (form.get("internship_name") as string) || null,
+      internship_location: (form.get("internship_location") as string) || null,
+      internship_memo: (form.get("internship_memo") as string) || null,
       deadline: (form.get("deadline") as string) || null,
     };
 
@@ -118,6 +122,41 @@ export function CompanyForm({
       <Field label="次のアクション">
         <Textarea name="next_action" rows={2} defaultValue={company?.next_action ?? ""} />
       </Field>
+
+      <Field label="企業メモ">
+        <Textarea
+          name="memo"
+          rows={4}
+          defaultValue={company?.memo ?? ""}
+          placeholder="事業内容、気になった点、面談で聞きたいことなど"
+        />
+      </Field>
+
+      <div className="rounded-lg border border-border p-3 space-y-3">
+        <p className="text-sm font-medium text-foreground">インターン情報</p>
+        <Field label="インターン名">
+          <Input
+            name="internship_name"
+            defaultValue={company?.internship_name ?? ""}
+            placeholder="例: Summer Internship"
+          />
+        </Field>
+        <Field label="場所・URL">
+          <Input
+            name="internship_location"
+            defaultValue={company?.internship_location ?? ""}
+            placeholder="オンライン / 東京本社 / https://..."
+          />
+        </Field>
+        <Field label="インターンメモ">
+          <Textarea
+            name="internship_memo"
+            rows={3}
+            defaultValue={company?.internship_memo ?? ""}
+            placeholder="内容、準備すること、気になる点など"
+          />
+        </Field>
+      </div>
 
       <div className="flex gap-2 pt-1">
         <Button type="submit" disabled={isPending}>

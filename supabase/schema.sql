@@ -12,6 +12,10 @@ create table if not exists companies (
   result text,
   salary text,
   next_action text,
+  memo text,
+  internship_name text,
+  internship_location text,
+  internship_memo text,
   deadline date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -41,6 +45,17 @@ create table if not exists tasks (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists company_events (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references companies(id) on delete cascade,
+  type text not null check (type in ('internship', 'interview', 'other')),
+  title text not null,
+  event_date date not null,
+  memo text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists es_templates (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -55,6 +70,8 @@ create table if not exists es_templates (
 create index if not exists idx_es_company_id on es(company_id);
 create index if not exists idx_tasks_company_id on tasks(company_id);
 create index if not exists idx_tasks_deadline on tasks(deadline);
+create index if not exists idx_company_events_company_id on company_events(company_id);
+create index if not exists idx_company_events_event_date on company_events(event_date);
 create index if not exists idx_companies_status on companies(status);
 create index if not exists idx_companies_deadline on companies(deadline);
 create index if not exists idx_companies_desired_level on companies(desired_level);
@@ -79,6 +96,10 @@ drop trigger if exists tasks_updated_at on tasks;
 create trigger tasks_updated_at before update on tasks
   for each row execute function update_updated_at();
 
+drop trigger if exists company_events_updated_at on company_events;
+create trigger company_events_updated_at before update on company_events
+  for each row execute function update_updated_at();
+
 drop trigger if exists es_templates_updated_at on es_templates;
 create trigger es_templates_updated_at before update on es_templates
   for each row execute function update_updated_at();
@@ -86,9 +107,11 @@ create trigger es_templates_updated_at before update on es_templates
 alter table companies enable row level security;
 alter table es enable row level security;
 alter table tasks enable row level security;
+alter table company_events enable row level security;
 alter table es_templates enable row level security;
 
 create policy "Allow all on companies" on companies for all using (true) with check (true);
 create policy "Allow all on es" on es for all using (true) with check (true);
 create policy "Allow all on tasks" on tasks for all using (true) with check (true);
+create policy "Allow all on company_events" on company_events for all using (true) with check (true);
 create policy "Allow all on es_templates" on es_templates for all using (true) with check (true);

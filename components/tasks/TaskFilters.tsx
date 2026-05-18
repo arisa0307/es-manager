@@ -33,6 +33,14 @@ export function TaskFilters() {
         <option value="false">未完了</option>
         <option value="true">完了</option>
       </Select>
+      <Select value={searchParams.get("sort") ?? "deadline"} onChange={(e) => update("sort", e.target.value)} className="sm:w-36">
+        <option value="deadline">締切順</option>
+        <option value="desired_level">志望度順</option>
+      </Select>
+      <Select value={searchParams.get("order") ?? "asc"} onChange={(e) => update("order", e.target.value)} className="sm:w-28">
+        <option value="asc">昇順</option>
+        <option value="desc">降順</option>
+      </Select>
     </div>
   );
 }

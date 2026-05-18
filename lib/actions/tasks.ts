@@ -2,18 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { TaskInsert, TaskUpdate } from "@/types";
+import type { DesiredLevel, SortOrder, TaskInsert, TaskUpdate } from "@/types";
+
+type TaskSort = "deadline" | "desired_level";
+
+const LEVEL_ORDER: Record<DesiredLevel, number> = { S: 0, A: 1, B: 2, C: 3 };
 
 export async function getTasks(options?: {
   search?: string;
   priority?: string;
   isDone?: boolean;
   companyId?: string;
+  sort?: TaskSort;
+  order?: SortOrder;
 }) {
   const supabase = await createClient();
   let query = supabase
     .from("tasks")
-    .select("*, companies(id, name)")
+    .select("*, companies(id, name, desired_level)")
     .order("deadline", { ascending: true, nullsFirst: false });
 
   if (options?.search) {
@@ -28,7 +34,29 @@ export async function getTasks(options?: {
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return data;
+  return sortTasks(data ?? [], options?.sort ?? "deadline", options?.order ?? "asc");
+}
+
+function sortTasks<T extends {
+  deadline: string | null;
+  companies: { desired_level: DesiredLevel | null } | null;
+}>(
+  tasks: T[],
+  sort: TaskSort,
+  order: SortOrder
+): T[] {
+  const dir = order === "asc" ? 1 : -1;
+  return [...tasks].sort((a, b) => {
+    if (sort === "desired_level") {
+      const aLevel = LEVEL_ORDER[a.companies?.desired_level ?? "C"] ?? 9;
+      const bLevel = LEVEL_ORDER[b.companies?.desired_level ?? "C"] ?? 9;
+      if (aLevel !== bLevel) return (aLevel - bLevel) * dir;
+    }
+
+    const aDeadline = a.deadline ?? "9999-12-31";
+    const bDeadline = b.deadline ?? "9999-12-31";
+    return aDeadline.localeCompare(bDeadline) * dir;
+  });
 }
 
 export async function getTaskStats() {
