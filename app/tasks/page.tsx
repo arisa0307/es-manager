@@ -11,7 +11,13 @@ export const dynamic = "force-dynamic";
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; priority?: string; done?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    priority?: string;
+    done?: string;
+    sort?: "deadline" | "desired_level";
+    order?: "asc" | "desc";
+  }>;
 }) {
   const params = await searchParams;
   let tasks: Awaited<ReturnType<typeof getTasks>> = [];
@@ -23,7 +29,13 @@ export default async function TasksPage({
 
   try {
     [tasks, companies] = await Promise.all([
-      getTasks({ search: params.q, priority: params.priority, isDone }),
+      getTasks({
+        search: params.q,
+        priority: params.priority,
+        isDone,
+        sort: params.sort,
+        order: params.order,
+      }),
       getCompanies(),
     ]);
   } catch (e) {

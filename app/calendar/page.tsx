@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { getCalendarCompanyEvents } from "@/lib/actions/companies";
+import { getCalendarCompanyScheduleEvents } from "@/lib/actions/company-events";
 import { getCalendarTaskEvents } from "@/lib/actions/tasks";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CalendarView } from "@/components/calendar/CalendarView";
@@ -13,9 +14,10 @@ export default async function CalendarPage() {
   let error: string | null = null;
 
   try {
-    const [companies, tasks] = await Promise.all([
+    const [companies, tasks, companyEvents] = await Promise.all([
       getCalendarCompanyEvents(),
       getCalendarTaskEvents(),
+      getCalendarCompanyScheduleEvents(),
     ]);
 
     events = [
@@ -35,6 +37,14 @@ export default async function CalendarPage() {
         companyId: t.company_id ?? undefined,
         href: t.company_id ? `/companies/${t.company_id}` : "/tasks",
       })),
+      ...companyEvents.map((event) => ({
+        id: `e-${event.id}`,
+        date: event.event_date,
+        title: event.title,
+        type: event.type as CalendarEvent["type"],
+        companyId: event.company_id,
+        href: `/companies/${event.company_id}`,
+      })),
     ];
   } catch (e) {
     error = e instanceof Error ? e.message : "取得に失敗しました";
@@ -42,7 +52,7 @@ export default async function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="カレンダー" description="企業締切・タスク締切" />
+      <PageHeader title="カレンダー" description="企業締切・タスク締切・面接/インターン日程" />
       {error ? (
         <Card className="border-red-500/30 bg-red-500/5">
           <p className="text-sm text-red-600">{error}</p>

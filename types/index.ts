@@ -31,6 +31,15 @@ export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
   low: "低",
 };
 
+export const COMPANY_EVENT_TYPES = ["internship", "interview", "other"] as const;
+export type CompanyEventType = (typeof COMPANY_EVENT_TYPES)[number];
+
+export const COMPANY_EVENT_TYPE_LABELS: Record<CompanyEventType, string> = {
+  internship: "インターン",
+  interview: "面接",
+  other: "その他",
+};
+
 export type Company = {
   id: string;
   name: string;
@@ -41,6 +50,10 @@ export type Company = {
   result: string | null;
   salary: string | null;
   next_action: string | null;
+  memo: string | null;
+  internship_name: string | null;
+  internship_location: string | null;
+  internship_memo: string | null;
   deadline: string | null;
   created_at: string;
   updated_at: string;
@@ -70,6 +83,17 @@ export type Task = {
   updated_at: string;
 };
 
+export type CompanyEvent = {
+  id: string;
+  company_id: string;
+  type: CompanyEventType;
+  title: string;
+  event_date: string;
+  memo: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ESTemplate = {
   id: string;
   title: string;
@@ -86,7 +110,7 @@ export type ESWithCompany = ES & {
 };
 
 export type TaskWithCompany = Task & {
-  companies: Pick<Company, "id" | "name"> | null;
+  companies: Pick<Company, "id" | "name" | "desired_level"> | null;
 };
 
 export type CompanyInsert = {
@@ -98,6 +122,10 @@ export type CompanyInsert = {
   result?: string | null;
   salary?: string | null;
   next_action?: string | null;
+  memo?: string | null;
+  internship_name?: string | null;
+  internship_location?: string | null;
+  internship_memo?: string | null;
   deadline?: string | null;
 };
 
@@ -124,6 +152,16 @@ export type TaskInsert = {
 };
 
 export type TaskUpdate = Partial<TaskInsert>;
+
+export type CompanyEventInsert = {
+  company_id: string;
+  type: CompanyEventType;
+  title: string;
+  event_date: string;
+  memo?: string | null;
+};
+
+export type CompanyEventUpdate = Partial<Omit<CompanyEventInsert, "company_id">>;
 
 export type ESTemplateInsert = {
   title: string;
@@ -156,7 +194,7 @@ export type CalendarEvent = {
   id: string;
   date: string;
   title: string;
-  type: "company" | "task";
+  type: "company" | "task" | CompanyEventType;
   companyId?: string;
   href: string;
 };

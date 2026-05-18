@@ -9,7 +9,14 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TaskForm } from "./TaskForm";
 import { formatDate, getPriorityColor, isOverdue } from "@/lib/utils";
-import { TASK_PRIORITY_LABELS, type Company, type TaskPriority, type TaskWithCompany } from "@/types";
+import {
+  DESIRED_LEVEL_LABELS,
+  TASK_PRIORITY_LABELS,
+  type Company,
+  type DesiredLevel,
+  type TaskPriority,
+  type TaskWithCompany,
+} from "@/types";
 
 export function TaskList({
   tasks,
@@ -72,6 +79,11 @@ export function TaskList({
                     <Link href={`/companies/${task.companies.id}`} className="text-xs text-muted-foreground hover:underline">
                       {task.companies.name}
                     </Link>
+                  )}
+                  {task.companies?.desired_level && (
+                    <span className="text-xs text-muted-foreground">
+                      志望度 {DESIRED_LEVEL_LABELS[task.companies.desired_level as DesiredLevel]}
+                    </span>
                   )}
                 </div>
               </div>

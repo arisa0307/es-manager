@@ -1,24 +1,130 @@
 -- 旧スキーマからの移行用（既にテーブルがある場合のみ実行）
 
+create or replace function update_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
 alter table companies add column if not exists url text;
 alter table companies add column if not exists desired_level text;
 alter table companies add column if not exists result text;
 alter table companies add column if not exists salary text;
 alter table companies add column if not exists next_action text;
+alter table companies add column if not exists memo text;
+alter table companies add column if not exists internship_name text;
+alter table companies add column if not exists internship_location text;
+alter table companies add column if not exists internship_memo text;
 alter table companies add column if not exists deadline date;
 alter table companies drop column if exists notes;
 
-alter table es rename column char_limit to word_count;
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'es'
+      and column_name = 'char_limit'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'es'
+      and column_name = 'word_count'
+  ) then
+    alter table es rename column char_limit to word_count;
+  end if;
+end;
+$$;
+alter table es add column if not exists word_count integer;
 alter table es add column if not exists tags text[] default '{}';
 alter table es add column if not exists base_es text;
 
-alter table tasks rename column due_date to deadline;
-alter table tasks rename column completed to is_done;
-alter table tasks rename column description to memo;
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tasks'
+      and column_name = 'due_date'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tasks'
+      and column_name = 'deadline'
+  ) then
+    alter table tasks rename column due_date to deadline;
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tasks'
+      and column_name = 'completed'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tasks'
+      and column_name = 'is_done'
+  ) then
+    alter table tasks rename column completed to is_done;
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tasks'
+      and column_name = 'description'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tasks'
+      and column_name = 'memo'
+  ) then
+    alter table tasks rename column description to memo;
+  end if;
+end;
+$$;
+alter table tasks add column if not exists deadline date;
+alter table tasks add column if not exists is_done boolean not null default false;
+alter table tasks add column if not exists memo text;
 -- priority: medium → mid
 update tasks set priority = 'mid' where priority = 'medium';
 alter table tasks drop constraint if exists tasks_priority_check;
 alter table tasks add constraint tasks_priority_check check (priority in ('high', 'mid', 'low'));
+
+create table if not exists company_events (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references companies(id) on delete cascade,
+  type text not null check (type in ('internship', 'interview', 'other')),
+  title text not null,
+  event_date date not null,
+  memo text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_company_events_company_id on company_events(company_id);
+create index if not exists idx_company_events_event_date on company_events(event_date);
+
+drop trigger if exists company_events_updated_at on company_events;
+create trigger company_events_updated_at before update on company_events
+  for each row execute function update_updated_at();
+
+alter table company_events enable row level security;
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'company_events'
+      and policyname = 'Allow all on company_events'
+  ) then
+    create policy "Allow all on company_events" on company_events for all using (true) with check (true);
+  end if;
+end;
+$$;
 
 create table if not exists es_templates (
   id uuid primary key default gen_random_uuid(),
@@ -32,4 +138,15 @@ create table if not exists es_templates (
 );
 
 alter table es_templates enable row level security;
-create policy "Allow all on es_templates" on es_templates for all using (true) with check (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'es_templates'
+      and policyname = 'Allow all on es_templates'
+  ) then
+    create policy "Allow all on es_templates" on es_templates for all using (true) with check (true);
+  end if;
+end;
+$$;

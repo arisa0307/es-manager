@@ -4,7 +4,7 @@ import { getTaskStats, getTasks } from "@/lib/actions/tasks";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getStatusColor, getLevelColor, formatDate, isOverdue } from "@/lib/utils";
+import { getStatusColor, getLevelColor, formatDate } from "@/lib/utils";
 import { COMPANY_STATUSES, DESIRED_LEVELS, type CompanyStatus, type DesiredLevel } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +14,7 @@ export default async function DashboardPage() {
   let companyStats = { total: 0, byStatus: {} as Record<string, number>, byLevel: {} as Record<string, number> };
   let taskStats = { pending: 0, completed: 0, overdue: 0, total: 0 };
   let companies: Awaited<ReturnType<typeof getCompanies>> = [];
+  let activeCompanies: Awaited<ReturnType<typeof getCompanies>> = [];
   let tasks: Awaited<ReturnType<typeof getTasks>> = [];
 
   try {
@@ -23,8 +24,12 @@ export default async function DashboardPage() {
       getCompanies({ sort: "deadline", order: "asc" }),
       getTasks({ isDone: false }),
     ]);
-    companies = companies.slice(0, 5);
-    tasks = tasks.filter((t) => t.deadline).slice(0, 5);
+    const today = new Date().toISOString().split("T")[0];
+    activeCompanies = companies
+      .filter((c) => ["ES", "Webテスト", "面接"].includes(c.status))
+      .slice(0, 6);
+    companies = companies.filter((c) => !c.deadline || c.deadline >= today).slice(0, 5);
+    tasks = tasks.filter((t) => t.deadline && t.deadline >= today).slice(0, 5);
   } catch (e) {
     error = e instanceof Error ? e.message : "データ取得に失敗しました";
   }
@@ -43,7 +48,7 @@ export default async function DashboardPage() {
         <Stat label="企業" value={companyStats.total} />
         <Stat label="未完了タスク" value={taskStats.pending} />
         <Stat label="完了" value={taskStats.completed} />
-        <Stat label="期限切れ" value={taskStats.overdue} alert={taskStats.overdue > 0} />
+        <Stat label="持ち駒" value={activeCompanies.length} />
       </div>
 
       <div className="grid sm:grid-cols-2 gap-6">
@@ -86,6 +91,38 @@ export default async function DashboardPage() {
       </div>
 
       <section className="mt-6">
+        <SectionLink href="/companies" label="持ち駒" />
+        <Card>
+          {activeCompanies.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-2">なし</p>
+          ) : (
+            <ul className="space-y-2">
+              {activeCompanies.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    href={`/companies/${c.id}`}
+                    className="flex items-center justify-between gap-3 text-sm py-1 hover:bg-muted/50 -mx-2 px-2 rounded"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium text-foreground">{c.name}</span>
+                      {c.next_action && (
+                        <span className="block text-xs text-muted-foreground truncate">
+                          次: {c.next_action}
+                        </span>
+                      )}
+                    </span>
+                    <Badge className={getStatusColor(c.status as CompanyStatus)}>
+                      {c.status}
+                    </Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </section>
+
+      <section className="mt-6">
         <SectionLink href="/tasks" label="直近の締切タスク" />
         <Card>
           {tasks.length === 0 ? (
@@ -95,7 +132,7 @@ export default async function DashboardPage() {
               {tasks.map((t) => (
                 <li key={t.id} className="text-sm flex justify-between">
                   <span>{t.title}</span>
-                  <span className={isOverdue(t.deadline, t.is_done) ? "text-red-600" : "text-muted-foreground"}>
+                  <span className="text-muted-foreground">
                     {formatDate(t.deadline)}
                   </span>
                 </li>

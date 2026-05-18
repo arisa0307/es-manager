@@ -7,6 +7,7 @@
 
 drop table if exists es cascade;
 drop table if exists tasks cascade;
+drop table if exists company_events cascade;
 drop table if exists es_templates cascade;
 drop table if exists companies cascade;
 

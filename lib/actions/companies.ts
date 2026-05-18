@@ -22,7 +22,7 @@ export async function getCompanies(options?: {
 
   if (options?.search) {
     query = query.or(
-      `name.ilike.%${options.search}%,industry.ilike.%${options.search}%`
+      `name.ilike.%${options.search}%,industry.ilike.%${options.search}%,memo.ilike.%${options.search}%`
     );
   }
   if (options?.status) query = query.eq("status", options.status);

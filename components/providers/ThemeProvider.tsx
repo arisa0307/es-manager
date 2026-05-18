@@ -23,9 +23,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem("at-theme") as Theme | null;
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const initial = stored ?? (prefersDark ? "dark" : "light");
-    setTheme(initial);
     document.documentElement.classList.toggle("dark", initial === "dark");
-    setMounted(true);
+    queueMicrotask(() => {
+      setTheme(initial);
+      setMounted(true);
+    });
   }, []);
 
   const toggle = useCallback(() => {
