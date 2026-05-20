@@ -4,13 +4,13 @@ export function Card({
   children,
   className,
   hover,
-}: {
-  children: React.ReactNode;
-  className?: string;
+  ...props
+}: React.ComponentPropsWithoutRef<"div"> & {
   hover?: boolean;
 }) {
   return (
     <div
+      {...props}
       className={cn(
         "rounded-lg border border-border bg-card p-4 shadow-sm",
         hover && "transition-shadow hover:shadow-md",
