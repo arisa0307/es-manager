@@ -40,6 +40,15 @@ export const COMPANY_EVENT_TYPE_LABELS: Record<CompanyEventType, string> = {
   other: "その他",
 };
 
+export const GENERAL_EVENT_TYPES = ["career_fair", "seminar", "other"] as const;
+export type GeneralEventType = (typeof GENERAL_EVENT_TYPES)[number];
+
+export const GENERAL_EVENT_TYPE_LABELS: Record<GeneralEventType, string> = {
+  career_fair: "合同説明会",
+  seminar: "セミナー",
+  other: "その他",
+};
+
 export type Company = {
   id: string;
   name: string;
@@ -163,6 +172,37 @@ export type CompanyEventInsert = {
 
 export type CompanyEventUpdate = Partial<Omit<CompanyEventInsert, "company_id">>;
 
+export type GeneralEvent = {
+  id: string;
+  title: string;
+  type: GeneralEventType;
+  event_date: string;
+  location: string | null;
+  memo: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GeneralEventInsert = {
+  title: string;
+  type?: GeneralEventType;
+  event_date: string;
+  location?: string | null;
+  memo?: string | null;
+};
+
+export type GeneralEventUpdate = Partial<GeneralEventInsert>;
+
+export type ScheduleItem = {
+  id: string;
+  date: string;
+  title: string;
+  kind: "general" | "company_event" | "company_deadline" | "task";
+  label: string;
+  href: string;
+  memo?: string | null;
+};
+
 export type ESTemplateInsert = {
   title: string;
   question: string;
@@ -194,7 +234,7 @@ export type CalendarEvent = {
   id: string;
   date: string;
   title: string;
-  type: "company" | "task" | CompanyEventType;
+  type: "company" | "task" | CompanyEventType | GeneralEventType;
   companyId?: string;
   href: string;
 };

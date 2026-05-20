@@ -142,3 +142,20 @@ export function getCalendarDays(year: number, month: number) {
 
   return days;
 }
+
+export function getTodayString(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+export function addDaysToDateString(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
+export function formatWeekday(date: string | null): string {
+  if (!date) return "";
+  return new Date(date + "T00:00:00").toLocaleDateString("ja-JP", {
+    weekday: "short",
+  });
+}

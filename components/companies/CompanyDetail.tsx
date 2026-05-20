@@ -87,21 +87,17 @@ export function CompanyDetail({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Card>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold text-foreground">
-              {company.name}
-            </h1>
+            <h1 className="text-2xl font-semibold text-foreground">{company.name}</h1>
             {company.industry && (
               <p className="text-muted-foreground mt-1">{company.industry}</p>
             )}
             <div className="flex flex-wrap gap-2 mt-3">
               {company.desired_level && (
-                <Badge
-                  className={getLevelColor(company.desired_level as DesiredLevel)}
-                >
+                <Badge className={getLevelColor(company.desired_level as DesiredLevel)}>
                   志望度 {company.desired_level}
                 </Badge>
               )}
@@ -109,9 +105,7 @@ export function CompanyDetail({
                 {company.status}
               </Badge>
               {company.result && (
-                <Badge className="bg-muted text-muted-foreground">
-                  {company.result}
-                </Badge>
+                <Badge className="bg-muted text-muted-foreground">{company.result}</Badge>
               )}
             </div>
           </div>
@@ -124,103 +118,79 @@ export function CompanyDetail({
             </Button>
           </div>
         </div>
+      </Card>
 
-        <div className="mt-5 rounded-xl border border-accent/30 bg-accent/5 p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <p className="text-xs font-medium text-accent">重要項目</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                次に確認すべき情報をまとめています
-              </p>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <ImportantItem
-              label="締切"
-              value={company.deadline ? formatDateFull(company.deadline) : "—"}
-              alert={isOverdue(company.deadline, false)}
-            />
-            <ImportantItem
-              label="直近の日程"
-              value={
-                upcomingEvent
-                  ? `${formatDateFull(upcomingEvent.event_date)} / ${
-                      COMPANY_EVENT_TYPE_LABELS[
-                        upcomingEvent.type as CompanyEventType
-                      ]
-                    }`
-                  : "—"
-              }
-              subValue={upcomingEvent?.title}
-            />
-            <ImportantItem
-              label="次のアクション"
-              value={company.next_action ?? "—"}
-              multiline
-            />
-          </div>
-
-          <div className="mt-3 rounded-lg border border-border bg-card p-3">
-            <p className="text-xs font-medium text-muted-foreground mb-1">
-              企業メモ
-            </p>
-            <p className="text-sm whitespace-pre-wrap">
-              {company.memo ?? <span className="text-muted-foreground">—</span>}
-            </p>
-          </div>
+      <Card className="border-accent/30 bg-accent/5 shadow-sm">
+        <p className="text-xs font-medium text-accent mb-1">重要項目</p>
+        <p className="text-xs text-muted-foreground mb-4">次に確認すべき情報</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ImportantItem
+            label="締切"
+            value={company.deadline ? formatDateFull(company.deadline) : "—"}
+            alert={isOverdue(company.deadline, false)}
+          />
+          <ImportantItem
+            label="直近の日程"
+            value={
+              upcomingEvent
+                ? `${formatDateFull(upcomingEvent.event_date)} / ${
+                    COMPANY_EVENT_TYPE_LABELS[upcomingEvent.type as CompanyEventType]
+                  }`
+                : "—"
+            }
+            subValue={upcomingEvent?.title}
+          />
+          <ImportantItem
+            label="次のアクション"
+            value={company.next_action ?? "—"}
+            multiline
+          />
         </div>
+        <div className="mt-4 rounded-lg border border-border bg-card p-3">
+          <p className="text-xs font-medium text-muted-foreground mb-1">企業メモ</p>
+          <p className="text-sm whitespace-pre-wrap">
+            {company.memo ?? <span className="text-muted-foreground">—</span>}
+          </p>
+        </div>
+      </Card>
 
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">URL</dt>
-          <dd>
+      <Card>
+        <h2 className="text-sm font-medium mb-3">基本情報</h2>
+        <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          <InfoItem label="URL">
             {company.url ? (
               <a
                 href={company.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:underline truncate block"
+                className="text-accent hover:underline break-all"
               >
                 {company.url}
               </a>
             ) : (
               <span className="text-muted-foreground">—</span>
             )}
-          </dd>
-
-          <dt className="text-muted-foreground">年収・待遇</dt>
-          <dd>{company.salary ?? <span className="text-muted-foreground">—</span>}</dd>
-
-          <dt className="text-muted-foreground">締切</dt>
-          <dd
-            className={
-              isOverdue(company.deadline, false) ? "text-red-600 font-medium" : ""
-            }
-          >
-            {company.deadline ? (
-              formatDateFull(company.deadline)
-            ) : (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </dd>
-          <dt className="text-muted-foreground col-span-2">インターン情報</dt>
-          <dd className="col-span-2 space-y-1">
-            <p>
-              <span className="text-muted-foreground">名称: </span>
-              {company.internship_name ?? "—"}
-            </p>
-            <p>
-              <span className="text-muted-foreground">場所・URL: </span>
-              {company.internship_location ?? "—"}
-            </p>
-            <p className="whitespace-pre-wrap">
-              <span className="text-muted-foreground">メモ: </span>
-              {company.internship_memo ?? "—"}
-            </p>
-          </dd>
+          </InfoItem>
+          <InfoItem label="年収・待遇">
+            {company.salary ?? <span className="text-muted-foreground">—</span>}
+          </InfoItem>
+          <InfoItem label="インターン名">
+            {company.internship_name ?? <span className="text-muted-foreground">—</span>}
+          </InfoItem>
+          <InfoItem label="インターン場所・URL">
+            {company.internship_location ?? <span className="text-muted-foreground">—</span>}
+          </InfoItem>
+          <div className="sm:col-span-2">
+            <InfoItem label="インターンメモ">
+              <span className="whitespace-pre-wrap">
+                {company.internship_memo ?? <span className="text-muted-foreground">—</span>}
+              </span>
+            </InfoItem>
+          </div>
         </dl>
       </Card>
 
-      <section>
+      <Card>
         <SectionHeader
           title="インターン・面接日程"
           action={
@@ -230,57 +200,54 @@ export function CompanyDetail({
           }
         />
         {showEvent && (
-          <Card className="mb-3">
+          <div className="mb-4 pb-4 border-b border-border">
             <CompanyEventForm
               companyId={company.id}
               onSuccess={() => setShowEvent(false)}
               onCancel={() => setShowEvent(false)}
             />
-          </Card>
+          </div>
         )}
         {events.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">日程がありません</p>
         ) : (
           <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
             {events.map((event) => (
-              <Card key={event.id}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge className={getEventTypeColor(event.type)}>
-                        {
-                          COMPANY_EVENT_TYPE_LABELS[
-                            event.type as CompanyEventType
-                          ]
-                        }
-                      </Badge>
-                      <p className="text-sm font-medium">{event.title}</p>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDateFull(event.event_date)}
-                      </span>
-                    </div>
-                    {event.memo && (
-                      <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-2">
-                        {event.memo}
-                      </p>
-                    )}
+              <div
+                key={event.id}
+                className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+              >
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={getEventTypeColor(event.type)}>
+                      {COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType]}
+                    </Badge>
+                    <p className="text-sm font-medium">{event.title}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDateFull(event.event_date)}
+                    </span>
                   </div>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDeleteEvent(event.id)}
-                    disabled={isPending}
-                  >
-                    削除
-                  </Button>
+                  {event.memo && (
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-2">
+                      {event.memo}
+                    </p>
+                  )}
                 </div>
-              </Card>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleDeleteEvent(event.id)}
+                  disabled={isPending}
+                >
+                  削除
+                </Button>
+              </div>
             ))}
           </div>
         )}
-      </section>
+      </Card>
 
-      <section>
+      <Card>
         <SectionHeader
           title="ES"
           action={
@@ -290,14 +257,14 @@ export function CompanyDetail({
           }
         />
         {showES && (
-          <Card className="mb-3">
+          <div className="mb-4 pb-4 border-b border-border">
             <ESForm
               companies={[{ id: company.id, name: company.name }]}
               defaultCompanyId={company.id}
               onSuccess={() => setShowES(false)}
               onCancel={() => setShowES(false)}
             />
-          </Card>
+          </div>
         )}
         {esList.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">ESがありません</p>
@@ -305,15 +272,12 @@ export function CompanyDetail({
           <div className="space-y-2">
             {esList.map((es) => {
               const words = countWords(es.answer);
-              const over =
-                es.word_count !== null && words > es.word_count;
+              const over = es.word_count !== null && words > es.word_count;
               return (
-                <Card key={es.id}>
+                <div key={es.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                   <p className="text-sm font-medium">{es.question}</p>
                   {es.tags && es.tags.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatTags(es.tags)}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{formatTags(es.tags)}</p>
                   )}
                   <Badge
                     className={`mt-2 ${over ? "bg-red-500/10 text-red-600" : "bg-muted text-muted-foreground"}`}
@@ -322,23 +286,21 @@ export function CompanyDetail({
                     {es.word_count !== null && ` / ${es.word_count}`} 文字
                   </Badge>
                   {es.base_es && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      ベース: {es.base_es}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">ベース: {es.base_es}</p>
                   )}
                   {es.answer && (
                     <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">
                       {es.answer}
                     </p>
                   )}
-                </Card>
+                </div>
               );
             })}
           </div>
         )}
-      </section>
+      </Card>
 
-      <section>
+      <Card>
         <SectionHeader
           title="タスク"
           action={
@@ -348,24 +310,28 @@ export function CompanyDetail({
           }
         />
         {showTask && (
-          <Card className="mb-3">
+          <div className="mb-4 pb-4 border-b border-border">
             <TaskForm
               companies={[{ id: company.id, name: company.name }]}
               defaultCompanyId={company.id}
               onSuccess={() => setShowTask(false)}
               onCancel={() => setShowTask(false)}
             />
-          </Card>
+          </div>
         )}
         {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">タスクがありません</p>
         ) : (
           <div className="space-y-2">
             {tasks.map((task) => (
-              <Card key={task.id}>
-                <div className="flex items-center gap-2">
+              <div key={task.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={task.is_done ? "line-through text-muted-foreground" : "font-medium text-sm"}
+                    className={
+                      task.is_done
+                        ? "line-through text-muted-foreground text-sm"
+                        : "font-medium text-sm"
+                    }
                   >
                     {task.title}
                   </span>
@@ -383,16 +349,16 @@ export function CompanyDetail({
                 {task.memo && (
                   <p className="text-xs text-muted-foreground mt-1">{task.memo}</p>
                 )}
-              </Card>
+              </div>
             ))}
           </div>
         )}
-      </section>
+      </Card>
 
-      <section>
+      <Card>
         <SectionHeader title="Webテスト・ログイン情報（ローカル）" />
         <CompanyLocalSection companyId={company.id} />
-      </section>
+      </Card>
 
       <Link href="/companies" className="text-sm text-muted-foreground hover:underline">
         ← 企業一覧
@@ -549,8 +515,23 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <h2 className="text-base font-medium text-foreground">{title}</h2>
+      <h2 className="text-sm font-medium text-foreground">{title}</h2>
       {action}
+    </div>
+  );
+}
+
+function InfoItem({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground mb-1">{label}</dt>
+      <dd className="text-sm">{children}</dd>
     </div>
   );
 }
