@@ -19,6 +19,8 @@ import {
   parseCompanyFormData,
 } from "./CompanyFormFields";
 import { CompanyLocalSection } from "./CompanyLocalSection";
+import { CompanyUpcomingSchedule } from "./CompanyUpcomingSchedule";
+import { buildCompanyUpcomingSchedule } from "@/lib/company-schedule";
 import { ESForm } from "@/components/es/ESForm";
 import { TaskForm } from "@/components/tasks/TaskForm";
 import {
@@ -59,7 +61,7 @@ export function CompanyDetail({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
-  const upcomingEvent = getUpcomingEvent(events);
+  const upcomingItems = buildCompanyUpcomingSchedule(company, tasks, events);
 
   const handleSaveCompany = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -103,17 +105,6 @@ export function CompanyDetail({
           </Button>
         </div>
 
-        {upcomingEvent && (
-          <div className="mb-4 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5">
-            <p className="text-xs font-medium text-accent mb-1">直近の日程</p>
-            <p className="text-sm font-medium">
-              {formatDateFull(upcomingEvent.event_date)} /{" "}
-              {COMPANY_EVENT_TYPE_LABELS[upcomingEvent.type as CompanyEventType]} —{" "}
-              {upcomingEvent.title}
-            </p>
-          </div>
-        )}
-
         <form
           key={`${company.id}-${company.updated_at}`}
           onSubmit={handleSaveCompany}
@@ -131,7 +122,9 @@ export function CompanyDetail({
         </form>
       </Card>
 
-      <Card>
+      <CompanyUpcomingSchedule items={upcomingItems} />
+
+      <Card id="company-events">
         <SectionHeader
           title="インターン・面接日程"
           action={
@@ -241,7 +234,7 @@ export function CompanyDetail({
         )}
       </Card>
 
-      <Card>
+      <Card id="company-tasks">
         <SectionHeader
           title="タスク"
           action={
@@ -410,11 +403,6 @@ function getEventTypeColor(type: CompanyEventType): string {
     case "other":
       return "bg-muted text-muted-foreground";
   }
-}
-
-function getUpcomingEvent(events: CompanyEvent[]) {
-  const today = new Date().toISOString().split("T")[0];
-  return events.find((event) => event.event_date >= today) ?? events[0];
 }
 
 function SectionHeader({
