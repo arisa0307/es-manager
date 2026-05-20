@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { CompanyEventInsert, CompanyEventUpdate } from "@/types";
 
@@ -30,10 +31,10 @@ export async function getCalendarCompanyScheduleEvents() {
 }
 
 export async function createCompanyEvent(input: CompanyEventInsert) {
-  const supabase = await createClient();
+  const { supabase, user } = await getAuthedClient();
   const { data, error } = await supabase
     .from("company_events")
-    .insert(input)
+    .insert({ ...input, user_id: user.id })
     .select()
     .single();
 
@@ -49,7 +50,7 @@ export async function updateCompanyEvent(
   id: string,
   input: CompanyEventUpdate
 ) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { data, error } = await supabase
     .from("company_events")
     .update(input)
@@ -66,7 +67,7 @@ export async function updateCompanyEvent(
 }
 
 export async function deleteCompanyEvent(id: string) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { data: row } = await supabase
     .from("company_events")
     .select("company_id")

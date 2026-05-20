@@ -17,6 +17,7 @@ create table if not exists companies (
   internship_location text,
   internship_memo text,
   deadline date,
+  user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -29,6 +30,7 @@ create table if not exists es (
   word_count integer,
   tags text[] default '{}',
   base_es text,
+  user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -41,6 +43,7 @@ create table if not exists tasks (
   priority text not null default 'mid' check (priority in ('high', 'mid', 'low')),
   is_done boolean not null default false,
   memo text,
+  user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -52,6 +55,7 @@ create table if not exists company_events (
   title text not null,
   event_date date not null,
   memo text,
+  user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -63,6 +67,7 @@ create table if not exists general_events (
   event_date date not null,
   location text,
   memo text,
+  user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -74,9 +79,17 @@ create table if not exists es_templates (
   answer text,
   word_count integer,
   tags text[] default '{}',
+  user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create index if not exists idx_companies_user_id on companies(user_id);
+create index if not exists idx_tasks_user_id on tasks(user_id);
+create index if not exists idx_es_user_id on es(user_id);
+create index if not exists idx_es_templates_user_id on es_templates(user_id);
+create index if not exists idx_company_events_user_id on company_events(user_id);
+create index if not exists idx_general_events_user_id on general_events(user_id);
 
 create index if not exists idx_es_company_id on es(company_id);
 create index if not exists idx_tasks_company_id on tasks(company_id);
@@ -127,9 +140,32 @@ alter table company_events enable row level security;
 alter table general_events enable row level security;
 alter table es_templates enable row level security;
 
-create policy "Allow all on companies" on companies for all using (true) with check (true);
-create policy "Allow all on es" on es for all using (true) with check (true);
-create policy "Allow all on tasks" on tasks for all using (true) with check (true);
-create policy "Allow all on company_events" on company_events for all using (true) with check (true);
-create policy "Allow all on general_events" on general_events for all using (true) with check (true);
-create policy "Allow all on es_templates" on es_templates for all using (true) with check (true);
+create policy "Users select own companies" on companies for select using (auth.uid() = user_id);
+create policy "Users insert own companies" on companies for insert with check (auth.uid() = user_id);
+create policy "Users update own companies" on companies for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users delete own companies" on companies for delete using (auth.uid() = user_id);
+
+create policy "Users select own es" on es for select using (auth.uid() = user_id);
+create policy "Users insert own es" on es for insert with check (auth.uid() = user_id);
+create policy "Users update own es" on es for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users delete own es" on es for delete using (auth.uid() = user_id);
+
+create policy "Users select own tasks" on tasks for select using (auth.uid() = user_id);
+create policy "Users insert own tasks" on tasks for insert with check (auth.uid() = user_id);
+create policy "Users update own tasks" on tasks for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users delete own tasks" on tasks for delete using (auth.uid() = user_id);
+
+create policy "Users select own company_events" on company_events for select using (auth.uid() = user_id);
+create policy "Users insert own company_events" on company_events for insert with check (auth.uid() = user_id);
+create policy "Users update own company_events" on company_events for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users delete own company_events" on company_events for delete using (auth.uid() = user_id);
+
+create policy "Users select own general_events" on general_events for select using (auth.uid() = user_id);
+create policy "Users insert own general_events" on general_events for insert with check (auth.uid() = user_id);
+create policy "Users update own general_events" on general_events for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users delete own general_events" on general_events for delete using (auth.uid() = user_id);
+
+create policy "Users select own es_templates" on es_templates for select using (auth.uid() = user_id);
+create policy "Users insert own es_templates" on es_templates for insert with check (auth.uid() = user_id);
+create policy "Users update own es_templates" on es_templates for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users delete own es_templates" on es_templates for delete using (auth.uid() = user_id);

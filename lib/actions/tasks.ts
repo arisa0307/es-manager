@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { DesiredLevel, SortOrder, TaskInsert, TaskUpdate } from "@/types";
 
@@ -93,10 +94,10 @@ export async function getCalendarTaskEvents() {
 }
 
 export async function createTask(input: TaskInsert) {
-  const supabase = await createClient();
+  const { supabase, user } = await getAuthedClient();
   const { data, error } = await supabase
     .from("tasks")
-    .insert(input)
+    .insert({ ...input, user_id: user.id })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -108,7 +109,7 @@ export async function createTask(input: TaskInsert) {
 }
 
 export async function updateTask(id: string, input: TaskUpdate) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { data, error } = await supabase
     .from("tasks")
     .update(input)
@@ -128,7 +129,7 @@ export async function toggleTaskDone(id: string, isDone: boolean) {
 }
 
 export async function deleteTask(id: string) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { data: row } = await supabase
     .from("tasks")
     .select("company_id")
