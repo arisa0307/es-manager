@@ -159,3 +159,17 @@ export function formatWeekday(date: string | null): string {
     weekday: "short",
   });
 }
+
+export function formatScheduleDaysLabel(date: string, today?: string): string {
+  const base = today ?? new Date().toISOString().split("T")[0];
+  const target = new Date(date + "T00:00:00");
+  const now = new Date(base + "T00:00:00");
+  const diff = Math.round(
+    (target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (diff < 0) return `期限切れ（${-diff}日前）`;
+  if (diff === 0) return "今日";
+  if (diff === 1) return "明日";
+  return `あと${diff}日`;
+}

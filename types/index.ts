@@ -37,7 +37,7 @@ export type CompanyEventType = (typeof COMPANY_EVENT_TYPES)[number];
 export const COMPANY_EVENT_TYPE_LABELS: Record<CompanyEventType, string> = {
   internship: "インターン",
   interview: "面接",
-  other: "その他",
+  other: "説明会・その他",
 };
 
 export const GENERAL_EVENT_TYPES = ["career_fair", "seminar", "other"] as const;
