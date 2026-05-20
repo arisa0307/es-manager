@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCompany } from "@/lib/actions/companies";
 import { Badge } from "@/components/ui/Badge";
@@ -17,6 +18,7 @@ import {
 import type { Company, CompanyStatus, DesiredLevel } from "@/types";
 
 export function CompanyTable({ companies }: { companies: Company[] }) {
+  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -45,9 +47,15 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
           </h3>
           <CompanyForm
             company={editing ?? undefined}
-            onSuccess={() => {
+            onSuccess={(createdCompanyId) => {
               setShowForm(false);
               setEditing(null);
+              if (createdCompanyId) {
+                router.push(`/companies/${createdCompanyId}`);
+                router.refresh();
+                return;
+              }
+              router.refresh();
             }}
             onCancel={() => {
               setShowForm(false);
@@ -83,6 +91,7 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
                 <td className="px-3 py-2.5">
                   <Link
                     href={`/companies/${c.id}`}
+                    prefetch={false}
                     className="font-medium text-foreground hover:underline"
                   >
                     {c.name}
@@ -134,7 +143,7 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
       <div className={`md:hidden space-y-2 ${isPending ? "opacity-60" : ""}`}>
         {companies.map((c) => (
           <Card key={c.id} hover>
-            <Link href={`/companies/${c.id}`} className="block">
+            <Link href={`/companies/${c.id}`} prefetch={false} className="block">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-medium text-foreground">{c.name}</p>
