@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTransition } from "react";
+import { signOut } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/providers/ThemeProvider";
 
@@ -17,6 +19,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
+  const [isPending, startTransition] = useTransition();
 
   return (
     <>
@@ -55,13 +58,22 @@ export function Sidebar() {
             })}
           </nav>
 
-          <button
-            onClick={toggle}
-            className="mt-auto flex items-center gap-2 px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors"
-            aria-label="テーマ切替"
-          >
-            {theme === "dark" ? "☀ ライト" : "☾ ダーク"}
-          </button>
+          <div className="mt-auto space-y-1">
+            <button
+              onClick={toggle}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors"
+              aria-label="テーマ切替"
+            >
+              {theme === "dark" ? "☀ ライト" : "☾ ダーク"}
+            </button>
+            <button
+              onClick={() => startTransition(() => signOut())}
+              disabled={isPending}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors disabled:opacity-60"
+            >
+              ログアウト
+            </button>
+          </div>
         </div>
       </aside>
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { ESTemplateInsert, ESTemplateUpdate } from "@/types";
 
@@ -34,10 +35,10 @@ export async function getTemplate(id: string) {
 }
 
 export async function createTemplate(input: ESTemplateInsert) {
-  const supabase = await createClient();
+  const { supabase, user } = await getAuthedClient();
   const { data, error } = await supabase
     .from("es_templates")
-    .insert({ ...input, tags: input.tags ?? [] })
+    .insert({ ...input, tags: input.tags ?? [], user_id: user.id })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -46,7 +47,7 @@ export async function createTemplate(input: ESTemplateInsert) {
 }
 
 export async function updateTemplate(id: string, input: ESTemplateUpdate) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { data, error } = await supabase
     .from("es_templates")
     .update(input)
@@ -59,7 +60,7 @@ export async function updateTemplate(id: string, input: ESTemplateUpdate) {
 }
 
 export async function deleteTemplate(id: string) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { error } = await supabase.from("es_templates").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/templates");

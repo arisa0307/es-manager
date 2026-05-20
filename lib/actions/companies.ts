@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { sortCompanies } from "@/lib/utils";
 import type {
@@ -49,10 +50,10 @@ export async function getCompany(id: string) {
 }
 
 export async function createCompany(input: CompanyInsert) {
-  const supabase = await createClient();
+  const { supabase, user } = await getAuthedClient();
   const { data, error } = await supabase
     .from("companies")
-    .insert(input)
+    .insert({ ...input, user_id: user.id })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -63,7 +64,7 @@ export async function createCompany(input: CompanyInsert) {
 }
 
 export async function updateCompany(id: string, input: CompanyUpdate) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { data, error } = await supabase
     .from("companies")
     .update(input)
@@ -79,7 +80,7 @@ export async function updateCompany(id: string, input: CompanyUpdate) {
 }
 
 export async function deleteCompany(id: string) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { error } = await supabase.from("companies").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/");

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { GeneralEventInsert, GeneralEventUpdate } from "@/types";
 
@@ -29,10 +30,10 @@ export async function getCalendarGeneralEvents() {
 }
 
 export async function createGeneralEvent(input: GeneralEventInsert) {
-  const supabase = await createClient();
+  const { supabase, user } = await getAuthedClient();
   const { data, error } = await supabase
     .from("general_events")
-    .insert(input)
+    .insert({ ...input, user_id: user.id })
     .select()
     .single();
 
@@ -45,7 +46,7 @@ export async function createGeneralEvent(input: GeneralEventInsert) {
 }
 
 export async function deleteGeneralEvent(id: string) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { error } = await supabase.from("general_events").delete().eq("id", id);
   if (isMissingGeneralEventsTable(error)) return;
   if (error) throw new Error(error.message);
@@ -53,7 +54,7 @@ export async function deleteGeneralEvent(id: string) {
 }
 
 export async function updateGeneralEvent(id: string, input: GeneralEventUpdate) {
-  const supabase = await createClient();
+  const { supabase } = await getAuthedClient();
   const { data, error } = await supabase
     .from("general_events")
     .update(input)
