@@ -126,6 +126,37 @@ begin
 end;
 $$;
 
+create table if not exists general_events (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  type text not null default 'other' check (type in ('career_fair', 'seminar', 'other')),
+  event_date date not null,
+  location text,
+  memo text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_general_events_event_date on general_events(event_date);
+
+drop trigger if exists general_events_updated_at on general_events;
+create trigger general_events_updated_at before update on general_events
+  for each row execute function update_updated_at();
+
+alter table general_events enable row level security;
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'general_events'
+      and policyname = 'Allow all on general_events'
+  ) then
+    create policy "Allow all on general_events" on general_events for all using (true) with check (true);
+  end if;
+end;
+$$;
+
 create table if not exists es_templates (
   id uuid primary key default gen_random_uuid(),
   title text not null,

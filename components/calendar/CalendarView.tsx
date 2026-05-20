@@ -117,6 +117,12 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded bg-pink-500/50" /> 面接
           </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded bg-violet-500/50" /> 合同説明会
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded bg-cyan-500/50" /> セミナー
+          </span>
         </div>
       </Card>
     </div>
@@ -133,6 +139,10 @@ function getCalendarEventColor(type: CalendarEvent["type"]): string {
       return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
     case "interview":
       return "bg-pink-500/10 text-pink-700 dark:text-pink-300";
+    case "career_fair":
+      return "bg-violet-500/10 text-violet-700 dark:text-violet-300";
+    case "seminar":
+      return "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300";
     case "other":
       return "bg-muted text-muted-foreground";
   }

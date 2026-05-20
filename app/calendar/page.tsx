@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getCalendarCompanyEvents } from "@/lib/actions/companies";
 import { getCalendarCompanyScheduleEvents } from "@/lib/actions/company-events";
+import { getCalendarGeneralEvents } from "@/lib/actions/general-events";
 import { getCalendarTaskEvents } from "@/lib/actions/tasks";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CalendarView } from "@/components/calendar/CalendarView";
@@ -14,13 +15,21 @@ export default async function CalendarPage() {
   let error: string | null = null;
 
   try {
-    const [companies, tasks, companyEvents] = await Promise.all([
+    const [companies, tasks, companyEvents, generalEvents] = await Promise.all([
       getCalendarCompanyEvents(),
       getCalendarTaskEvents(),
       getCalendarCompanyScheduleEvents(),
+      getCalendarGeneralEvents(),
     ]);
 
     events = [
+      ...generalEvents.map((event) => ({
+        id: `g-${event.id}`,
+        date: event.event_date,
+        title: event.title,
+        type: event.type as CalendarEvent["type"],
+        href: "/",
+      })),
       ...companies.map((c) => ({
         id: `c-${c.id}`,
         date: c.deadline!,
@@ -52,7 +61,7 @@ export default async function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="カレンダー" description="企業締切・タスク締切・面接/インターン日程" />
+      <PageHeader title="カレンダー" description="企業締切・タスク・面接/インターン・一般予定" />
       {error ? (
         <Card className="border-red-500/30 bg-red-500/5">
           <p className="text-sm text-red-600">{error}</p>

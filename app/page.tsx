@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { getCompanyStats, getCompanies } from "@/lib/actions/companies";
+import { getGeneralEvents } from "@/lib/actions/general-events";
+import { getScheduleForDates } from "@/lib/actions/schedule";
 import { getTaskStats, getTasks } from "@/lib/actions/tasks";
+import { GeneralEventsSection } from "@/components/dashboard/GeneralEventsSection";
+import { TodayTomorrowSchedule } from "@/components/dashboard/TodayTomorrowSchedule";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getStatusColor, getLevelColor, formatDate } from "@/lib/utils";
-import { COMPANY_STATUSES, DESIRED_LEVELS, type CompanyStatus, type DesiredLevel } from "@/types";
+import { getStatusColor, getLevelColor, formatDate, getTodayString, addDaysToDateString } from "@/lib/utils";
+import { COMPANY_STATUSES, DESIRED_LEVELS, type CompanyStatus, type DesiredLevel, type ScheduleItem } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -16,15 +20,23 @@ export default async function DashboardPage() {
   let companies: Awaited<ReturnType<typeof getCompanies>> = [];
   let activeCompanies: Awaited<ReturnType<typeof getCompanies>> = [];
   let tasks: Awaited<ReturnType<typeof getTasks>> = [];
+  let generalEvents: Awaited<ReturnType<typeof getGeneralEvents>> = [];
+  let todayItems: ScheduleItem[] = [];
+  let tomorrowItems: ScheduleItem[] = [];
+  const today = getTodayString();
+  const tomorrow = addDaysToDateString(today, 1);
 
   try {
-    [companyStats, taskStats, companies, tasks] = await Promise.all([
+    [companyStats, taskStats, companies, tasks, generalEvents, todayItems, tomorrowItems] =
+      await Promise.all([
       getCompanyStats(),
       getTaskStats(),
       getCompanies({ sort: "deadline", order: "asc" }),
       getTasks({ isDone: false }),
+      getGeneralEvents(),
+      getScheduleForDates([today]),
+      getScheduleForDates([tomorrow]),
     ]);
-    const today = new Date().toISOString().split("T")[0];
     activeCompanies = companies
       .filter((c) => ["ES", "Webテスト", "面接"].includes(c.status))
       .slice(0, 6);
@@ -49,6 +61,19 @@ export default async function DashboardPage() {
         <Stat label="未完了タスク" value={taskStats.pending} />
         <Stat label="完了" value={taskStats.completed} />
         <Stat label="持ち駒" value={activeCompanies.length} />
+      </div>
+
+      <div className="mb-6">
+        <TodayTomorrowSchedule
+          today={today}
+          tomorrow={tomorrow}
+          todayItems={todayItems}
+          tomorrowItems={tomorrowItems}
+        />
+      </div>
+
+      <div className="mb-6">
+        <GeneralEventsSection events={generalEvents} />
       </div>
 
       <div className="grid sm:grid-cols-2 gap-6">
