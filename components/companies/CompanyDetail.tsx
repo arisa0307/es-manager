@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { deleteCompany } from "@/lib/actions/companies";
+import { deleteCompany, updateCompany } from "@/lib/actions/companies";
 import {
   createCompanyEvent,
   deleteCompanyEvent,
@@ -14,14 +14,15 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { CompanyForm } from "./CompanyForm";
+import {
+  CompanyFormFields,
+  parseCompanyFormData,
+} from "./CompanyFormFields";
 import { CompanyLocalSection } from "./CompanyLocalSection";
 import { ESForm } from "@/components/es/ESForm";
 import { TaskForm } from "@/components/tasks/TaskForm";
 import {
   formatDateFull,
-  getStatusColor,
-  getLevelColor,
   getPriorityColor,
   formatDate,
   isOverdue,
@@ -35,8 +36,6 @@ import {
   type Company,
   type CompanyEvent,
   type CompanyEventType,
-  type CompanyStatus,
-  type DesiredLevel,
   type ES,
   type Task,
   type TaskPriority,
@@ -54,12 +53,27 @@ export function CompanyDetail({
   events: CompanyEvent[];
 }) {
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
   const [showES, setShowES] = useState(false);
   const [showTask, setShowTask] = useState(false);
   const [showEvent, setShowEvent] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
   const upcomingEvent = getUpcomingEvent(events);
+
+  const handleSaveCompany = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = parseCompanyFormData(new FormData(e.currentTarget));
+    startSaveTransition(async () => {
+      try {
+        setSaveError(null);
+        await updateCompany(company.id, data);
+        router.refresh();
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : "エラーが発生しました");
+      }
+    });
+  };
 
   const handleDelete = () => {
     if (!confirm(`「${company.name}」を削除しますか？`)) return;
@@ -74,120 +88,43 @@ export function CompanyDetail({
     startTransition(() => deleteCompanyEvent(id));
   };
 
-  if (editing) {
-    return (
-      <Card>
-        <CompanyForm
-          company={company}
-          onSuccess={() => setEditing(false)}
-          onCancel={() => setEditing(false)}
-        />
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-5">
       <Card>
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
             <h1 className="text-2xl font-semibold text-foreground">{company.name}</h1>
-            {company.industry && (
-              <p className="text-muted-foreground mt-1">{company.industry}</p>
-            )}
-            <div className="flex flex-wrap gap-2 mt-3">
-              {company.desired_level && (
-                <Badge className={getLevelColor(company.desired_level as DesiredLevel)}>
-                  志望度 {company.desired_level}
-                </Badge>
-              )}
-              <Badge className={getStatusColor(company.status as CompanyStatus)}>
-                {company.status}
-              </Badge>
-              {company.result && (
-                <Badge className="bg-muted text-muted-foreground">{company.result}</Badge>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              下のフォームから直接編集できます
+            </p>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-              編集
-            </Button>
-            <Button variant="danger" size="sm" onClick={handleDelete} disabled={isPending}>
-              削除
-            </Button>
-          </div>
+          <Button variant="danger" size="sm" onClick={handleDelete} disabled={isPending}>
+            削除
+          </Button>
         </div>
-      </Card>
 
-      <Card className="border-accent/30 bg-accent/5 shadow-sm">
-        <p className="text-xs font-medium text-accent mb-1">重要項目</p>
-        <p className="text-xs text-muted-foreground mb-4">次に確認すべき情報</p>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <ImportantItem
-            label="締切"
-            value={company.deadline ? formatDateFull(company.deadline) : "—"}
-            alert={isOverdue(company.deadline, false)}
-          />
-          <ImportantItem
-            label="直近の日程"
-            value={
-              upcomingEvent
-                ? `${formatDateFull(upcomingEvent.event_date)} / ${
-                    COMPANY_EVENT_TYPE_LABELS[upcomingEvent.type as CompanyEventType]
-                  }`
-                : "—"
-            }
-            subValue={upcomingEvent?.title}
-          />
-          <ImportantItem
-            label="次のアクション"
-            value={company.next_action ?? "—"}
-            multiline
-          />
-        </div>
-        <div className="mt-4 rounded-lg border border-border bg-card p-3">
-          <p className="text-xs font-medium text-muted-foreground mb-1">企業メモ</p>
-          <p className="text-sm whitespace-pre-wrap">
-            {company.memo ?? <span className="text-muted-foreground">—</span>}
-          </p>
-        </div>
-      </Card>
-
-      <Card>
-        <h2 className="text-sm font-medium mb-3">基本情報</h2>
-        <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-          <InfoItem label="URL">
-            {company.url ? (
-              <a
-                href={company.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent hover:underline break-all"
-              >
-                {company.url}
-              </a>
-            ) : (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </InfoItem>
-          <InfoItem label="年収・待遇">
-            {company.salary ?? <span className="text-muted-foreground">—</span>}
-          </InfoItem>
-          <InfoItem label="インターン名">
-            {company.internship_name ?? <span className="text-muted-foreground">—</span>}
-          </InfoItem>
-          <InfoItem label="インターン場所・URL">
-            {company.internship_location ?? <span className="text-muted-foreground">—</span>}
-          </InfoItem>
-          <div className="sm:col-span-2">
-            <InfoItem label="インターンメモ">
-              <span className="whitespace-pre-wrap">
-                {company.internship_memo ?? <span className="text-muted-foreground">—</span>}
-              </span>
-            </InfoItem>
+        {upcomingEvent && (
+          <div className="mb-4 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5">
+            <p className="text-xs font-medium text-accent mb-1">直近の日程</p>
+            <p className="text-sm font-medium">
+              {formatDateFull(upcomingEvent.event_date)} /{" "}
+              {COMPANY_EVENT_TYPE_LABELS[upcomingEvent.type as CompanyEventType]} —{" "}
+              {upcomingEvent.title}
+            </p>
           </div>
-        </dl>
+        )}
+
+        <form onSubmit={handleSaveCompany} className="space-y-3">
+          {saveError && (
+            <p className="text-sm text-red-600 bg-red-500/10 rounded-md px-3 py-2">
+              {saveError}
+            </p>
+          )}
+          <CompanyFormFields company={company} />
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? "保存中..." : "変更を保存"}
+          </Button>
+        </form>
       </Card>
 
       <Card>
@@ -471,36 +408,6 @@ function getEventTypeColor(type: CompanyEventType): string {
   }
 }
 
-function ImportantItem({
-  label,
-  value,
-  subValue,
-  alert,
-  multiline,
-}: {
-  label: string;
-  value: string;
-  subValue?: string;
-  alert?: boolean;
-  multiline?: boolean;
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-3 shadow-xs">
-      <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
-      <p
-        className={`text-base font-semibold ${
-          alert ? "text-red-600" : "text-foreground"
-        } ${multiline ? "whitespace-pre-wrap line-clamp-3" : "truncate"}`}
-      >
-        {value}
-      </p>
-      {subValue && (
-        <p className="text-xs text-muted-foreground mt-1 truncate">{subValue}</p>
-      )}
-    </div>
-  );
-}
-
 function getUpcomingEvent(events: CompanyEvent[]) {
   const today = new Date().toISOString().split("T")[0];
   return events.find((event) => event.event_date >= today) ?? events[0];
@@ -517,21 +424,6 @@ function SectionHeader({
     <div className="flex items-center justify-between mb-3">
       <h2 className="text-sm font-medium text-foreground">{title}</h2>
       {action}
-    </div>
-  );
-}
-
-function InfoItem({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-muted-foreground mb-1">{label}</dt>
-      <dd className="text-sm">{children}</dd>
     </div>
   );
 }
