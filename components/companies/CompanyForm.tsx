@@ -17,7 +17,8 @@ export function CompanyForm({
   onCancel,
 }: {
   company?: Company;
-  onSuccess?: () => void;
+  /** 新規作成時は作成した企業 ID を渡す */
+  onSuccess?: (createdCompanyId?: string) => void;
   onCancel?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -33,6 +34,7 @@ export function CompanyForm({
       try {
         if (company) {
           await updateCompany(company.id, data);
+          onSuccess?.();
         } else {
           const created = await createCompany(data);
           if (optionalEvent) {
@@ -41,8 +43,8 @@ export function CompanyForm({
               ...optionalEvent,
             });
           }
+          onSuccess?.(created.id);
         }
-        onSuccess?.();
       } catch (err) {
         setError(err instanceof Error ? err.message : "エラーが発生しました");
       }

@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_noStore as noStore } from "next/cache";
 import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -39,6 +40,7 @@ export async function getCompanies(options?: {
 }
 
 export async function getCompany(id: string) {
+  noStore();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
@@ -59,6 +61,7 @@ export async function createCompany(input: CompanyInsert) {
   if (error) throw new Error(error.message);
   revalidatePath("/");
   revalidatePath("/companies");
+  revalidatePath(`/companies/${data.id}`);
   revalidatePath("/calendar");
   return data;
 }
