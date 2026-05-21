@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCompany, updateCompany } from "@/lib/actions/companies";
+import { removeCompanyLocalData } from "@/lib/local-storage";
 import {
   createCompanyEvent,
   deleteCompanyEvent,
@@ -81,6 +82,7 @@ export function CompanyDetail({
     if (!confirm(`「${company.name}」を削除しますか？`)) return;
     startTransition(async () => {
       await deleteCompany(company.id);
+      removeCompanyLocalData(company.id);
       router.push("/companies");
     });
   };

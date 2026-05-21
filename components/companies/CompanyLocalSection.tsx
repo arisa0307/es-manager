@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { Button } from "@/components/ui/Button";
 import {
   getCompanyLocalData,
   setCompanyLocalData,
@@ -13,19 +12,41 @@ import type { CompanyLocalData } from "@/types";
 
 export function CompanyLocalSection({ companyId }: { companyId: string }) {
   const [data, setData] = useState<CompanyLocalData>({});
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<"saved" | "idle">("idle");
+  const loadedSnapshot = useRef("");
+  const hydrated = useRef(false);
 
   useEffect(() => {
+    hydrated.current = false;
     queueMicrotask(() => {
-      setData(getCompanyLocalData(companyId));
+      const loaded = getCompanyLocalData(companyId);
+      setData(loaded);
+      loadedSnapshot.current = JSON.stringify(loaded);
+      hydrated.current = true;
+      setStatus("idle");
     });
   }, [companyId]);
 
-  const save = () => {
-    setCompanyLocalData(companyId, data);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+  useEffect(() => {
+    if (!hydrated.current) return;
+
+    const serialized = JSON.stringify(data);
+    if (serialized === loadedSnapshot.current) return;
+
+    const timer = setTimeout(() => {
+      setCompanyLocalData(companyId, data);
+      loadedSnapshot.current = serialized;
+      setStatus("saved");
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [companyId, data]);
+
+  useEffect(() => {
+    if (status !== "saved") return;
+    const hide = setTimeout(() => setStatus("idle"), 2000);
+    return () => clearTimeout(hide);
+  }, [status]);
 
   const update = (key: keyof CompanyLocalData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }));
@@ -36,7 +57,7 @@ export function CompanyLocalSection({ companyId }: { companyId: string }) {
       <Card>
         <h3 className="text-sm font-medium mb-3">Webテスト情報</h3>
         <p className="text-xs text-muted-foreground mb-3">
-          この端末の localStorage にのみ保存されます
+          この端末のブラウザに自動保存されます（サーバーには送信しません）
         </p>
         <div className="space-y-2">
           <Field label="URL">
@@ -59,7 +80,7 @@ export function CompanyLocalSection({ companyId }: { companyId: string }) {
       <Card>
         <h3 className="text-sm font-medium mb-3">ID / Password</h3>
         <p className="text-xs text-muted-foreground mb-3">
-          ローカル保存のみ（サーバーには送信しません）
+          入力すると自動でローカルに保存されます
         </p>
         <div className="space-y-2">
           <Field label="ID">
@@ -79,7 +100,11 @@ export function CompanyLocalSection({ companyId }: { companyId: string }) {
       </Card>
 
       <div className="sm:col-span-2">
-        <Button onClick={save}>{saved ? "保存しました ✓" : "ローカルに保存"}</Button>
+        <p className="text-xs text-muted-foreground">
+          {status === "saved" && "保存しました ✓"}
+          {status === "idle" &&
+            "※ 同じ企業（同じID）のページでのみ表示されます。別端末・別URL（localhost / 本番）では共有されません"}
+        </p>
       </div>
     </div>
   );
