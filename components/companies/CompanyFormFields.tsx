@@ -27,6 +27,10 @@ export function parseCompanyFormData(form: FormData) {
     internship_location: (form.get("internship_location") as string) || null,
     internship_memo: (form.get("internship_memo") as string) || null,
     deadline: (form.get("deadline") as string) || null,
+    web_test_url: (form.get("web_test_url") as string) || null,
+    web_test_notes: (form.get("web_test_notes") as string) || null,
+    login_id: (form.get("login_id") as string) || null,
+    login_password: (form.get("login_password") as string) || null,
   };
 }
 
@@ -151,6 +155,53 @@ export function CompanyFormFields({
             placeholder="内容、準備すること、気になる点など"
           />
         </Field>
+      </section>
+
+      <section className="space-y-3 rounded-lg border border-border p-3">
+        <SectionTitle
+          title="Webテスト情報"
+          description="企業データとして Supabase に保存されます"
+        />
+        <Field label="Webテスト URL">
+          <Input
+            name="web_test_url"
+            type="url"
+            defaultValue={company?.web_test_url ?? ""}
+            placeholder="https://"
+          />
+        </Field>
+        <Field label="Webテストメモ">
+          <Textarea
+            name="web_test_notes"
+            rows={3}
+            defaultValue={company?.web_test_notes ?? ""}
+            placeholder="受験期限、形式、注意点など"
+          />
+        </Field>
+      </section>
+
+      <section className="space-y-3 rounded-lg border border-border p-3">
+        <SectionTitle
+          title="ログイン情報"
+          description="マイページ・応募サイトの ID / パスワード"
+        />
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Field label="ID">
+            <Input
+              name="login_id"
+              autoComplete="username"
+              defaultValue={company?.login_id ?? ""}
+            />
+          </Field>
+          <Field label="Password">
+            <Input
+              name="login_password"
+              type="password"
+              autoComplete="current-password"
+              defaultValue={company?.login_password ?? ""}
+            />
+          </Field>
+        </div>
       </section>
 
       {showOptionalEvent && (

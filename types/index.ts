@@ -64,6 +64,10 @@ export type Company = {
   internship_location: string | null;
   internship_memo: string | null;
   deadline: string | null;
+  web_test_url: string | null;
+  web_test_notes: string | null;
+  login_id: string | null;
+  login_password: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -136,6 +140,10 @@ export type CompanyInsert = {
   internship_location?: string | null;
   internship_memo?: string | null;
   deadline?: string | null;
+  web_test_url?: string | null;
+  web_test_notes?: string | null;
+  login_id?: string | null;
+  login_password?: string | null;
 };
 
 export type CompanyUpdate = Partial<CompanyInsert>;
@@ -212,14 +220,6 @@ export type ESTemplateInsert = {
 };
 
 export type ESTemplateUpdate = Partial<ESTemplateInsert>;
-
-/** 企業詳細のローカル保存データ（Webテスト・ID/Password） */
-export type CompanyLocalData = {
-  webTestUrl?: string;
-  webTestNotes?: string;
-  loginId?: string;
-  loginPassword?: string;
-};
 
 export type CompanySortField =
   | "name"

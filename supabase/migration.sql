@@ -18,6 +18,10 @@ alter table companies add column if not exists internship_name text;
 alter table companies add column if not exists internship_location text;
 alter table companies add column if not exists internship_memo text;
 alter table companies add column if not exists deadline date;
+alter table companies add column if not exists web_test_url text;
+alter table companies add column if not exists web_test_notes text;
+alter table companies add column if not exists login_id text;
+alter table companies add column if not exists login_password text;
 alter table companies drop column if exists notes;
 
 do $$
