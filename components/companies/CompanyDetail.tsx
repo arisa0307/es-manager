@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCompany, updateCompany } from "@/lib/actions/companies";
-import { removeCompanyLocalData } from "@/lib/local-storage";
 import {
   createCompanyEvent,
   deleteCompanyEvent,
@@ -19,7 +18,6 @@ import {
   CompanyFormFields,
   parseCompanyFormData,
 } from "./CompanyFormFields";
-import { CompanyLocalSection } from "./CompanyLocalSection";
 import { CompanyUpcomingSchedule } from "./CompanyUpcomingSchedule";
 import { buildCompanyUpcomingSchedule } from "@/lib/company-schedule";
 import { ESForm } from "@/components/es/ESForm";
@@ -82,7 +80,6 @@ export function CompanyDetail({
     if (!confirm(`「${company.name}」を削除しますか？`)) return;
     startTransition(async () => {
       await deleteCompany(company.id);
-      removeCompanyLocalData(company.id);
       router.push("/companies");
     });
   };
@@ -289,11 +286,6 @@ export function CompanyDetail({
             ))}
           </div>
         )}
-      </Card>
-
-      <Card>
-        <SectionHeader title="Webテスト・ログイン情報（ローカル）" />
-        <CompanyLocalSection companyId={company.id} />
       </Card>
 
       <Link href="/companies" className="text-sm text-muted-foreground hover:underline">

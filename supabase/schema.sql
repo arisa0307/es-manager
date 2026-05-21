@@ -17,6 +17,10 @@ create table if not exists companies (
   internship_location text,
   internship_memo text,
   deadline date,
+  web_test_url text,
+  web_test_notes text,
+  login_id text,
+  login_password text,
   user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
