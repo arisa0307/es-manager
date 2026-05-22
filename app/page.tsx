@@ -38,7 +38,9 @@ export default async function DashboardPage() {
       getScheduleForDates([tomorrow]),
     ]);
     activeCompanies = companies
-      .filter((c) => ["ES", "Webテスト", "面接"].includes(c.status))
+      .filter((c) =>
+        ["マイページ登録済み", "ES", "Webテスト", "面接"].includes(c.status)
+      )
       .slice(0, 6);
     companies = companies.filter((c) => !c.deadline || c.deadline >= today).slice(0, 5);
     tasks = tasks.filter((t) => t.deadline && t.deadline >= today).slice(0, 5);
