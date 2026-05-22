@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { createTask, updateTask } from "@/lib/actions/tasks";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, type Company, type Task, type TaskPriority } from "@/types";
@@ -68,8 +69,8 @@ export function TaskForm({
       )}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">締切</label>
-          <Input type="date" name="deadline" defaultValue={task?.deadline ?? ""} />
+          <label className="block text-xs text-muted-foreground mb-1">締切・期日</label>
+          <OptionalDateField name="deadline" defaultValue={task?.deadline} />
         </div>
         <div>
           <label className="block text-xs text-muted-foreground mb-1">優先度</label>
