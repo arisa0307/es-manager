@@ -1,4 +1,5 @@
 import { CopyableInput } from "@/components/ui/CopyableInput";
+import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
@@ -111,8 +112,8 @@ export function CompanyFormFields({
 
       <section className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-3">
         <SectionTitle title="重要項目" description="締切・次のアクション・メモ" />
-        <Field label="締切">
-          <Input type="date" name="deadline" defaultValue={company?.deadline ?? ""} />
+        <Field label="締切・期日">
+          <OptionalDateField name="deadline" defaultValue={company?.deadline} />
         </Field>
         <Field label="次のアクション">
           <Textarea
