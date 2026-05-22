@@ -44,6 +44,7 @@ export function parseOptionalEventFormData(form: FormData) {
     type: form.get("event_type") as "internship" | "interview" | "other",
     title,
     event_date,
+    event_time: (form.get("event_time") as string)?.trim() || null,
     memo: (form.get("event_memo") as string) || null,
   };
 }
@@ -226,6 +227,9 @@ export function CompanyFormFields({
               <Input type="date" name="event_date" />
             </Field>
           </div>
+          <Field label="開催時間">
+            <Input type="time" name="event_time" />
+          </Field>
           <Field label="タイトル">
             <Input name="event_title" placeholder="例: 1次面接 / 1dayインターン" />
           </Field>

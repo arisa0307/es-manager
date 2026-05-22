@@ -22,7 +22,7 @@ export async function getCalendarCompanyScheduleEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("company_events")
-    .select("id, company_id, type, title, event_date")
+    .select("id, company_id, type, title, event_date, event_time")
     .order("event_date", { ascending: true });
 
   if (isMissingCompanyEventsTable(error)) return [];

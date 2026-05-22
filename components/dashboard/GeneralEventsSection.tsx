@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { createGeneralEvent, deleteGeneralEvent } from "@/lib/actions/general-events";
+import {
+  createGeneralEvent,
+  deleteGeneralEvent,
+  updateGeneralEvent,
+} from "@/lib/actions/general-events";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { formatDateFull } from "@/lib/utils";
+import { formatEventDateTime, parseEventTimeFromForm } from "@/lib/utils";
 import {
   GENERAL_EVENT_TYPES,
   GENERAL_EVENT_TYPE_LABELS,
@@ -19,6 +23,7 @@ import {
 
 export function GeneralEventsSection({ events }: { events: GeneralEvent[] }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const upcoming = events.filter((e) => e.event_date >= new Date().toISOString().split("T")[0]);
@@ -37,7 +42,7 @@ export function GeneralEventsSection({ events }: { events: GeneralEvent[] }) {
         </Button>
       </div>
 
-      {showForm && (
+      {showForm && !editingEventId && (
         <Card className="mb-3">
           <GeneralEventForm onSuccess={() => setShowForm(false)} onCancel={() => setShowForm(false)} />
         </Card>
@@ -51,37 +56,60 @@ export function GeneralEventsSection({ events }: { events: GeneralEvent[] }) {
             {upcoming.slice(0, 8).map((event) => (
               <li
                 key={event.id}
-                className="flex items-start justify-between gap-3 text-sm py-1 border-b border-border last:border-0"
+                className="text-sm py-2 border-b border-border last:border-0"
               >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={getGeneralEventColor(event.type as GeneralEventType)}>
-                      {GENERAL_EVENT_TYPE_LABELS[event.type as GeneralEventType]}
-                    </Badge>
-                    <span className="font-medium">{event.title}</span>
+                {editingEventId === event.id ? (
+                  <GeneralEventForm
+                    event={event}
+                    onSuccess={() => setEditingEventId(null)}
+                    onCancel={() => setEditingEventId(null)}
+                  />
+                ) : (
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={getGeneralEventColor(event.type as GeneralEventType)}>
+                          {GENERAL_EVENT_TYPE_LABELS[event.type as GeneralEventType]}
+                        </Badge>
+                        <span className="font-medium">{event.title}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatEventDateTime(event.event_date, event.event_time)}
+                        {event.location && ` · ${event.location}`}
+                      </p>
+                      {event.memo && (
+                        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
+                          {event.memo}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setShowForm(false);
+                          setEditingEventId(event.id);
+                        }}
+                        disabled={isPending}
+                      >
+                        編集
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm("この予定を削除しますか？")) {
+                            startTransition(() => deleteGeneralEvent(event.id));
+                          }
+                        }}
+                        disabled={isPending}
+                      >
+                        削除
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDateFull(event.event_date)}
-                    {event.location && ` · ${event.location}`}
-                  </p>
-                  {event.memo && (
-                    <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
-                      {event.memo}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => {
-                    if (confirm("この予定を削除しますか？")) {
-                      startTransition(() => deleteGeneralEvent(event.id));
-                    }
-                  }}
-                  disabled={isPending}
-                >
-                  削除
-                </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -95,9 +123,11 @@ export function GeneralEventsSection({ events }: { events: GeneralEvent[] }) {
 }
 
 function GeneralEventForm({
+  event,
   onSuccess,
   onCancel,
 }: {
+  event?: GeneralEvent;
   onSuccess?: () => void;
   onCancel?: () => void;
 }) {
@@ -111,13 +141,15 @@ function GeneralEventForm({
       title: form.get("title") as string,
       type: form.get("type") as GeneralEventType,
       event_date: form.get("event_date") as string,
+      event_time: parseEventTimeFromForm(form),
       location: (form.get("location") as string) || null,
       memo: (form.get("memo") as string) || null,
     };
 
     startTransition(async () => {
       try {
-        await createGeneralEvent(data);
+        if (event) await updateGeneralEvent(event.id, data);
+        else await createGeneralEvent(data);
         onSuccess?.();
       } catch (err) {
         setError(err instanceof Error ? err.message : "エラーが発生しました");
@@ -132,7 +164,7 @@ function GeneralEventForm({
       )}
       <div className="grid grid-cols-2 gap-3">
         <Field label="種類">
-          <Select name="type" defaultValue="career_fair">
+          <Select name="type" defaultValue={event?.type ?? "career_fair"}>
             {GENERAL_EVENT_TYPES.map((type) => (
               <option key={type} value={type}>
                 {GENERAL_EVENT_TYPE_LABELS[type]}
@@ -141,21 +173,43 @@ function GeneralEventForm({
           </Select>
         </Field>
         <Field label="日程 *">
-          <Input type="date" name="event_date" required />
+          <Input
+            type="date"
+            name="event_date"
+            required
+            defaultValue={event?.event_date ?? ""}
+          />
         </Field>
       </div>
+      <Field label="開催時間">
+        <Input type="time" name="event_time" defaultValue={event?.event_time ?? ""} />
+      </Field>
       <Field label="タイトル *">
-        <Input name="title" required placeholder="例: 就活EXPO / IT業界合同説明会" />
+        <Input
+          name="title"
+          required
+          defaultValue={event?.title ?? ""}
+          placeholder="例: 就活EXPO / IT業界合同説明会"
+        />
       </Field>
       <Field label="場所・URL">
-        <Input name="location" placeholder="オンライン / 東京ビッグサイト" />
+        <Input
+          name="location"
+          defaultValue={event?.location ?? ""}
+          placeholder="オンライン / 東京ビッグサイト"
+        />
       </Field>
       <Field label="メモ">
-        <Textarea name="memo" rows={2} placeholder="持ち物、URL、準備することなど" />
+        <Textarea
+          name="memo"
+          rows={2}
+          defaultValue={event?.memo ?? ""}
+          placeholder="持ち物、URL、準備することなど"
+        />
       </Field>
       <div className="flex gap-2">
         <Button type="submit" disabled={isPending}>
-          {isPending ? "保存中..." : "追加"}
+          {isPending ? "保存中..." : event ? "更新" : "追加"}
         </Button>
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel}>

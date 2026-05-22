@@ -33,6 +33,7 @@ export async function getScheduleForDates(dates: string[]) {
       kind: "general",
       label: GENERAL_EVENT_TYPE_LABELS[event.type as GeneralEventType],
       href: "/",
+      time: event.event_time ?? null,
       memo: null,
     });
   }
@@ -46,6 +47,7 @@ export async function getScheduleForDates(dates: string[]) {
       kind: "company_event",
       label: COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType],
       href: `/companies/${event.company_id}`,
+      time: event.event_time ?? null,
     });
   }
 

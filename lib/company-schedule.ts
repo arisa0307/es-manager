@@ -36,6 +36,7 @@ export function buildCompanyUpcomingSchedule(
       kind: "company_event",
       label: COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType],
       href: `#company-events`,
+      time: event.event_time,
       memo: event.memo,
     });
   }
