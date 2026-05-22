@@ -1,3 +1,4 @@
+import { CopyableInput } from "@/components/ui/CopyableInput";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
@@ -187,18 +188,18 @@ export function CompanyFormFields({
         />
         <div className="grid sm:grid-cols-2 gap-3">
           <Field label="ID">
-            <Input
+            <CopyableInput
               name="login_id"
               autoComplete="username"
               defaultValue={company?.login_id ?? ""}
             />
           </Field>
           <Field label="Password">
-            <Input
+            <CopyableInput
               name="login_password"
-              type="password"
-              autoComplete="current-password"
+              autoComplete="off"
               defaultValue={company?.login_password ?? ""}
+              placeholder="表示・コピー可能"
             />
           </Field>
         </div>
