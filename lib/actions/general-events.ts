@@ -21,7 +21,7 @@ export async function getCalendarGeneralEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("general_events")
-    .select("id, title, type, event_date")
+    .select("id, title, type, event_date, event_time")
     .order("event_date", { ascending: true });
 
   if (isMissingGeneralEventsTable(error)) return [];

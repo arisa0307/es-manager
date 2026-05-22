@@ -49,6 +49,7 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {formatDateFull(item.date)}
+                      {item.time && ` ${item.time}`}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       （{formatWeekday(item.date)}）

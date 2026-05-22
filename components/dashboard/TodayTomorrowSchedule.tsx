@@ -68,7 +68,15 @@ function DaySchedule({
               >
                 <div className="flex items-center gap-2">
                   <Badge className={getScheduleColor(item.kind)}>{item.label}</Badge>
-                  <span className="text-sm font-medium truncate">{item.title}</span>
+                  <span className="text-sm font-medium truncate">
+                    {item.title}
+                    {item.time && (
+                      <span className="text-muted-foreground font-normal">
+                        {" "}
+                        {item.time}
+                      </span>
+                    )}
+                  </span>
                 </div>
               </Link>
             </li>

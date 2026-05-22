@@ -22,6 +22,8 @@ alter table companies add column if not exists web_test_url text;
 alter table companies add column if not exists web_test_notes text;
 alter table companies add column if not exists login_id text;
 alter table companies add column if not exists login_password text;
+alter table company_events add column if not exists event_time text;
+alter table general_events add column if not exists event_time text;
 alter table companies drop column if exists notes;
 
 do $$

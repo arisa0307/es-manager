@@ -26,7 +26,7 @@ export default async function CalendarPage() {
       ...generalEvents.map((event) => ({
         id: `g-${event.id}`,
         date: event.event_date,
-        title: event.title,
+        title: event.event_time ? `${event.title} (${event.event_time})` : event.title,
         type: event.type as CalendarEvent["type"],
         href: "/",
       })),
@@ -49,7 +49,7 @@ export default async function CalendarPage() {
       ...companyEvents.map((event) => ({
         id: `e-${event.id}`,
         date: event.event_date,
-        title: event.title,
+        title: event.event_time ? `${event.title} (${event.event_time})` : event.title,
         type: event.type as CalendarEvent["type"],
         companyId: event.company_id,
         href: `/companies/${event.company_id}`,

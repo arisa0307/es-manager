@@ -103,6 +103,7 @@ export type CompanyEvent = {
   type: CompanyEventType;
   title: string;
   event_date: string;
+  event_time: string | null;
   memo: string | null;
   created_at: string;
   updated_at: string;
@@ -176,6 +177,7 @@ export type CompanyEventInsert = {
   type: CompanyEventType;
   title: string;
   event_date: string;
+  event_time?: string | null;
   memo?: string | null;
 };
 
@@ -186,6 +188,7 @@ export type GeneralEvent = {
   title: string;
   type: GeneralEventType;
   event_date: string;
+  event_time: string | null;
   location: string | null;
   memo: string | null;
   created_at: string;
@@ -196,6 +199,7 @@ export type GeneralEventInsert = {
   title: string;
   type?: GeneralEventType;
   event_date: string;
+  event_time?: string | null;
   location?: string | null;
   memo?: string | null;
 };
@@ -209,6 +213,7 @@ export type ScheduleItem = {
   kind: "general" | "company_event" | "company_deadline" | "task";
   label: string;
   href: string;
+  time?: string | null;
   memo?: string | null;
 };
 

@@ -4,26 +4,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCompany, updateCompany } from "@/lib/actions/companies";
-import {
-  createCompanyEvent,
-  deleteCompanyEvent,
-} from "@/lib/actions/company-events";
+import { deleteCompanyEvent } from "@/lib/actions/company-events";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Textarea } from "@/components/ui/Textarea";
 import {
   CompanyFormFields,
   parseCompanyFormData,
 } from "./CompanyFormFields";
+import { CompanyEventForm } from "./CompanyEventForm";
 import { CompanyUpcomingSchedule } from "./CompanyUpcomingSchedule";
 import { buildCompanyUpcomingSchedule } from "@/lib/company-schedule";
 import { ESForm } from "@/components/es/ESForm";
 import { TaskForm } from "@/components/tasks/TaskForm";
 import {
-  formatDateFull,
+  formatEventDateTime,
   getPriorityColor,
   formatDate,
   isOverdue,
@@ -33,7 +28,6 @@ import {
 import {
   TASK_PRIORITY_LABELS,
   COMPANY_EVENT_TYPE_LABELS,
-  COMPANY_EVENT_TYPES,
   type Company,
   type CompanyEvent,
   type CompanyEventType,
@@ -57,6 +51,7 @@ export function CompanyDetail({
   const [showES, setShowES] = useState(false);
   const [showTask, setShowTask] = useState(false);
   const [showEvent, setShowEvent] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
@@ -132,7 +127,7 @@ export function CompanyDetail({
             </Button>
           }
         />
-        {showEvent && (
+        {showEvent && !editingEventId && (
           <div className="mb-4 pb-4 border-b border-border">
             <CompanyEventForm
               companyId={company.id}
@@ -148,32 +143,56 @@ export function CompanyDetail({
             {events.map((event) => (
               <div
                 key={event.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+                className="rounded-lg border border-border bg-muted/20 px-3 py-2.5"
               >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={getEventTypeColor(event.type)}>
-                      {COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType]}
-                    </Badge>
-                    <p className="text-sm font-medium">{event.title}</p>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDateFull(event.event_date)}
-                    </span>
+                {editingEventId === event.id ? (
+                  <CompanyEventForm
+                    companyId={company.id}
+                    event={event}
+                    onSuccess={() => setEditingEventId(null)}
+                    onCancel={() => setEditingEventId(null)}
+                  />
+                ) : (
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={getEventTypeColor(event.type)}>
+                          {COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType]}
+                        </Badge>
+                        <p className="text-sm font-medium">{event.title}</p>
+                        <span className="text-xs text-muted-foreground">
+                          {formatEventDateTime(event.event_date, event.event_time)}
+                        </span>
+                      </div>
+                      {event.memo && (
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-2">
+                          {event.memo}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setShowEvent(false);
+                          setEditingEventId(event.id);
+                        }}
+                        disabled={isPending}
+                      >
+                        編集
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDeleteEvent(event.id)}
+                        disabled={isPending}
+                      >
+                        削除
+                      </Button>
+                    </div>
                   </div>
-                  {event.memo && (
-                    <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-2">
-                      {event.memo}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => handleDeleteEvent(event.id)}
-                  disabled={isPending}
-                >
-                  削除
-                </Button>
+                )}
               </div>
             ))}
           </div>
@@ -291,99 +310,6 @@ export function CompanyDetail({
       <Link href="/companies" className="text-sm text-muted-foreground hover:underline">
         ← 企業一覧
       </Link>
-    </div>
-  );
-}
-
-function CompanyEventForm({
-  companyId,
-  onSuccess,
-  onCancel,
-}: {
-  companyId: string;
-  onSuccess?: () => void;
-  onCancel?: () => void;
-}) {
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const data = {
-      company_id: companyId,
-      type: form.get("type") as CompanyEventType,
-      title: form.get("title") as string,
-      event_date: form.get("event_date") as string,
-      memo: (form.get("memo") as string) || null,
-    };
-
-    startTransition(async () => {
-      try {
-        await createCompanyEvent(data);
-        onSuccess?.();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "エラーが発生しました");
-      }
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      {error && (
-        <p className="text-sm text-red-600 bg-red-500/10 rounded-md px-3 py-2">
-          {error}
-        </p>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="種類">
-          <Select name="type" defaultValue="interview">
-            {COMPANY_EVENT_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {COMPANY_EVENT_TYPE_LABELS[type]}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="日程 *">
-          <Input type="date" name="event_date" required />
-        </Field>
-      </div>
-      <Field label="タイトル *">
-        <Input
-          name="title"
-          required
-          placeholder="例: 1次面接 / 1dayインターン"
-        />
-      </Field>
-      <Field label="メモ">
-        <Textarea
-          name="memo"
-          rows={2}
-          placeholder="場所、URL、準備することなど"
-        />
-      </Field>
-      <div className="flex gap-2 pt-1">
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "保存中..." : "追加"}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel}>
-            キャンセル
-          </Button>
-        )}
-      </div>
-    </form>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-muted-foreground mb-1">
-        {label}
-      </label>
-      {children}
     </div>
   );
 }
