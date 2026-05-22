@@ -50,6 +50,7 @@ export function formatTags(tags: string[] | null): string {
 
 const STATUS_COLORS: Record<CompanyStatus, string> = {
   未エントリー: "bg-muted text-muted-foreground",
+  マイページ登録済み: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
   ES: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
   Webテスト: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
   面接: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
@@ -86,11 +87,12 @@ export function getPriorityColor(priority: TaskPriority): string {
 const LEVEL_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3 };
 const STATUS_ORDER: Record<string, number> = {
   未エントリー: 0,
-  ES: 1,
-  Webテスト: 2,
-  面接: 3,
-  内定: 4,
-  落選: 5,
+  マイページ登録済み: 1,
+  ES: 2,
+  Webテスト: 3,
+  面接: 4,
+  内定: 5,
+  落選: 6,
 };
 
 export function sortCompanies<T extends {
