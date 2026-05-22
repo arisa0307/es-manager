@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { GeneralEventInsert, GeneralEventUpdate } from "@/types";
+import type {
+  CalendarGeneralEventRow,
+  GeneralEventInsert,
+  GeneralEventUpdate,
+} from "@/types";
 
 export async function getGeneralEvents() {
   const supabase = await createClient();
@@ -17,7 +21,7 @@ export async function getGeneralEvents() {
   return data ?? [];
 }
 
-export async function getCalendarGeneralEvents() {
+export async function getCalendarGeneralEvents(): Promise<CalendarGeneralEventRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("general_events")
@@ -26,7 +30,7 @@ export async function getCalendarGeneralEvents() {
 
   if (isMissingGeneralEventsTable(error)) return [];
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []) as CalendarGeneralEventRow[];
 }
 
 export async function createGeneralEvent(input: GeneralEventInsert) {

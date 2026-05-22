@@ -21,9 +21,7 @@ export function CopyableInput({
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
-    const el = document.querySelector<HTMLInputElement>(
-      `input[name="${CSS.escape(name)}"]`
-    );
+    const el = document.querySelector<HTMLInputElement>(`input[name="${name}"]`);
     const value = el?.value ?? defaultValue;
     if (!value) return;
 

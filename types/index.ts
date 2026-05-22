@@ -103,7 +103,7 @@ export type CompanyEvent = {
   type: CompanyEventType;
   title: string;
   event_date: string;
-  event_time: string | null;
+  event_time?: string | null;
   memo: string | null;
   created_at: string;
   updated_at: string;
@@ -188,7 +188,7 @@ export type GeneralEvent = {
   title: string;
   type: GeneralEventType;
   event_date: string;
-  event_time: string | null;
+  event_time?: string | null;
   location: string | null;
   memo: string | null;
   created_at: string;
@@ -244,3 +244,13 @@ export type CalendarEvent = {
   companyId?: string;
   href: string;
 };
+
+export type CalendarGeneralEventRow = Pick<
+  GeneralEvent,
+  "id" | "title" | "type" | "event_date" | "event_time"
+>;
+
+export type CalendarCompanyEventRow = Pick<
+  CompanyEvent,
+  "id" | "company_id" | "type" | "title" | "event_date" | "event_time"
+>;
