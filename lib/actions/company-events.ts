@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { CompanyEventInsert, CompanyEventUpdate } from "@/types";
+import type {
+  CalendarCompanyEventRow,
+  CompanyEventInsert,
+  CompanyEventUpdate,
+} from "@/types";
 
 export async function getCompanyEvents(companyId: string) {
   const supabase = await createClient();
@@ -18,7 +22,9 @@ export async function getCompanyEvents(companyId: string) {
   return data ?? [];
 }
 
-export async function getCalendarCompanyScheduleEvents() {
+export async function getCalendarCompanyScheduleEvents(): Promise<
+  CalendarCompanyEventRow[]
+> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("company_events")
@@ -27,7 +33,7 @@ export async function getCalendarCompanyScheduleEvents() {
 
   if (isMissingCompanyEventsTable(error)) return [];
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []) as CalendarCompanyEventRow[];
 }
 
 export async function createCompanyEvent(input: CompanyEventInsert) {
