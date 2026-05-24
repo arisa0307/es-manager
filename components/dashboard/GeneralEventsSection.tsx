@@ -21,12 +21,20 @@ import {
   type GeneralEventType,
 } from "@/types";
 
-export function GeneralEventsSection({ events }: { events: GeneralEvent[] }) {
+export function GeneralEventsSection({
+  events,
+  today,
+}: {
+  events: GeneralEvent[];
+  today: string;
+}) {
   const [showForm, setShowForm] = useState(false);
+  const [showPast, setShowPast] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const upcoming = events.filter((e) => e.event_date >= new Date().toISOString().split("T")[0]);
+  const upcoming = events.filter((e) => e.event_date >= today);
+  const past = events.filter((e) => e.event_date < today).reverse();
 
   return (
     <section>
@@ -34,7 +42,7 @@ export function GeneralEventsSection({ events }: { events: GeneralEvent[] }) {
         <div>
           <h2 className="text-sm font-medium">一般予定</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            合同説明会・セミナーなど企業に紐づかない予定
+            合同説明会・セミナーなど企業に紐づかない予定（過去の予定も保持されます）
           </p>
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)}>
@@ -49,76 +57,133 @@ export function GeneralEventsSection({ events }: { events: GeneralEvent[] }) {
       )}
 
       <Card>
-        {upcoming.length === 0 ? (
+        {upcoming.length === 0 && past.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-2">予定なし</p>
         ) : (
-          <ul className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
-            {upcoming.slice(0, 8).map((event) => (
-              <li
-                key={event.id}
-                className="text-sm py-2 border-b border-border last:border-0"
-              >
-                {editingEventId === event.id ? (
-                  <GeneralEventForm
+          <>
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-2">
+                これからの予定はありません
+              </p>
+            ) : (
+              <ul className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
+                {upcoming.slice(0, 8).map((event) => (
+                  <GeneralEventItem
+                    key={event.id}
                     event={event}
-                    onSuccess={() => setEditingEventId(null)}
-                    onCancel={() => setEditingEventId(null)}
+                    editingEventId={editingEventId}
+                    isPending={isPending}
+                    onEdit={() => {
+                      setShowForm(false);
+                      setEditingEventId(event.id);
+                    }}
+                    onDelete={() => {
+                      if (confirm("この予定を削除しますか？\n（削除は取り消せません）")) {
+                        startTransition(() => deleteGeneralEvent(event.id));
+                      }
+                    }}
+                    onEditSuccess={() => setEditingEventId(null)}
+                    onEditCancel={() => setEditingEventId(null)}
                   />
-                ) : (
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={getGeneralEventColor(event.type as GeneralEventType)}>
-                          {GENERAL_EVENT_TYPE_LABELS[event.type as GeneralEventType]}
-                        </Badge>
-                        <span className="font-medium">{event.title}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatEventDateTime(event.event_date, event.event_time)}
-                        {event.location && ` · ${event.location}`}
-                      </p>
-                      {event.memo && (
-                        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
-                          {event.memo}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
+                ))}
+              </ul>
+            )}
+            {past.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowPast(!showPast)}
+                  className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {showPast ? "過去の予定を隠す" : `過去の予定を表示（${past.length}件）`}
+                </button>
+                {showPast && (
+                  <ul className={`space-y-2 mt-2 ${isPending ? "opacity-60" : ""}`}>
+                    {past.map((event) => (
+                      <GeneralEventItem
+                        key={event.id}
+                        event={event}
+                        editingEventId={editingEventId}
+                        isPending={isPending}
+                        muted
+                        onEdit={() => {
                           setShowForm(false);
                           setEditingEventId(event.id);
                         }}
-                        disabled={isPending}
-                      >
-                        編集
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm("この予定を削除しますか？")) {
+                        onDelete={() => {
+                          if (confirm("この予定を削除しますか？\n（削除は取り消せません）")) {
                             startTransition(() => deleteGeneralEvent(event.id));
                           }
                         }}
-                        disabled={isPending}
-                      >
-                        削除
-                      </Button>
-                    </div>
-                  </div>
+                        onEditSuccess={() => setEditingEventId(null)}
+                        onEditCancel={() => setEditingEventId(null)}
+                      />
+                    ))}
+                  </ul>
                 )}
-              </li>
-            ))}
-          </ul>
+              </div>
+            )}
+          </>
         )}
         <Link href="/calendar" className="block text-xs text-muted-foreground hover:underline mt-3">
           カレンダーで見る →
         </Link>
       </Card>
     </section>
+  );
+}
+
+function GeneralEventItem({
+  event,
+  editingEventId,
+  isPending,
+  muted,
+  onEdit,
+  onDelete,
+  onEditSuccess,
+  onEditCancel,
+}: {
+  event: GeneralEvent;
+  editingEventId: string | null;
+  isPending: boolean;
+  muted?: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onEditSuccess: () => void;
+  onEditCancel: () => void;
+}) {
+  return (
+    <li className={`text-sm py-2 border-b border-border last:border-0 ${muted ? "opacity-75" : ""}`}>
+      {editingEventId === event.id ? (
+        <GeneralEventForm event={event} onSuccess={onEditSuccess} onCancel={onEditCancel} />
+      ) : (
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className={getGeneralEventColor(event.type as GeneralEventType)}>
+                {GENERAL_EVENT_TYPE_LABELS[event.type as GeneralEventType]}
+              </Badge>
+              <span className="font-medium">{event.title}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatEventDateTime(event.event_date, event.event_time)}
+              {event.location && ` · ${event.location}`}
+            </p>
+            {event.memo && (
+              <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{event.memo}</p>
+            )}
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <Button variant="secondary" size="sm" onClick={onEdit} disabled={isPending}>
+              編集
+            </Button>
+            <Button variant="danger" size="sm" onClick={onDelete} disabled={isPending}>
+              削除
+            </Button>
+          </div>
+        </div>
+      )}
+    </li>
   );
 }
 
@@ -173,12 +238,7 @@ function GeneralEventForm({
           </Select>
         </Field>
         <Field label="日程 *">
-          <Input
-            type="date"
-            name="event_date"
-            required
-            defaultValue={event?.event_date ?? ""}
-          />
+          <Input type="date" name="event_date" required defaultValue={event?.event_date ?? ""} />
         </Field>
       </div>
       <Field label="開催時間">

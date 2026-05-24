@@ -28,8 +28,7 @@ export function formatDateFull(date: string | null): string {
 
 export function isOverdue(deadline: string | null, isDone: boolean): boolean {
   if (!deadline || isDone) return false;
-  const today = new Date().toISOString().split("T")[0];
-  return deadline < today;
+  return deadline < getTodayString();
 }
 
 export function countWords(text: string | null): number {
@@ -145,14 +144,15 @@ export function getCalendarDays(year: number, month: number) {
   return days;
 }
 
-export function getTodayString(): string {
-  return new Date().toISOString().split("T")[0];
+/** 日本時間の「今日」（YYYY-MM-DD） */
+export function getTodayString(timeZone = "Asia/Tokyo"): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone });
 }
 
 export function addDaysToDateString(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return dt.toISOString().split("T")[0];
 }
 
 export function formatWeekday(date: string | null): string {
