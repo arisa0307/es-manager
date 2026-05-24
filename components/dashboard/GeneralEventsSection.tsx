@@ -33,6 +33,7 @@ export function GeneralEventsSection({
   today: string;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [showPast, setShowPast] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -53,7 +54,7 @@ export function GeneralEventsSection({
         <div>
           <h2 className="text-sm font-medium">一般予定</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            期日なしは削除するまで残ります。過去の予定も一覧で確認できます
+            期日なしは削除するまで残ります。過去の予定は必要なときだけ開けます
           </p>
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)}>
@@ -111,24 +112,35 @@ export function GeneralEventsSection({
               </EventGroup>
             )}
             {past.length > 0 && (
-              <EventGroup title={`過去（${past.length}件）`}>
-                {past.map((event) => (
-                  <GeneralEventItem
-                    key={event.id}
-                    event={event}
-                    editingEventId={editingEventId}
-                    isPending={isPending}
-                    muted
-                    onEdit={() => {
-                      setShowForm(false);
-                      setEditingEventId(event.id);
-                    }}
-                    onDelete={() => confirmDelete(event.id, startTransition)}
-                    onEditSuccess={() => setEditingEventId(null)}
-                    onEditCancel={() => setEditingEventId(null)}
-                  />
-                ))}
-              </EventGroup>
+              <div className="pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowPast(!showPast)}
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {showPast ? "過去の予定を隠す" : `過去の予定を表示（${past.length}件）`}
+                </button>
+                {showPast && (
+                  <ul className="space-y-2 mt-2">
+                    {past.map((event) => (
+                      <GeneralEventItem
+                        key={event.id}
+                        event={event}
+                        editingEventId={editingEventId}
+                        isPending={isPending}
+                        muted
+                        onEdit={() => {
+                          setShowForm(false);
+                          setEditingEventId(event.id);
+                        }}
+                        onDelete={() => confirmDelete(event.id, startTransition)}
+                        onEditSuccess={() => setEditingEventId(null)}
+                        onEditCancel={() => setEditingEventId(null)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
         )}
