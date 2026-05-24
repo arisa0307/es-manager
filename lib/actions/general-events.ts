@@ -14,7 +14,7 @@ export async function getGeneralEvents() {
   const { data, error } = await supabase
     .from("general_events")
     .select("*")
-    .order("event_date", { ascending: true });
+    .order("updated_at", { ascending: false });
 
   if (isMissingGeneralEventsTable(error)) {
     throw new Error(
@@ -30,6 +30,7 @@ export async function getCalendarGeneralEvents(): Promise<CalendarGeneralEventRo
   const { data, error } = await supabase
     .from("general_events")
     .select("id, title, type, event_date, event_time")
+    .not("event_date", "is", null)
     .order("event_date", { ascending: true });
 
   if (isMissingGeneralEventsTable(error)) {

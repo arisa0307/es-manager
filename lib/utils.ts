@@ -166,9 +166,15 @@ export function formatEventDateTime(
   date: string | null,
   time: string | null | undefined
 ): string {
+  if (!date) return time ? `期日なし · ${time}` : "期日なし";
   const dateLabel = formatDateFull(date);
   if (!time) return dateLabel;
   return `${dateLabel} ${time}`;
+}
+
+export function parseOptionalDateFromForm(form: FormData, name = "event_date"): string | null {
+  const value = (form.get(name) as string)?.trim();
+  return value || null;
 }
 
 export function parseEventTimeFromForm(form: FormData, name = "event_time"): string | null {

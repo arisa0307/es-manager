@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   createGeneralEvent,
@@ -11,9 +10,14 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { formatEventDateTime, parseEventTimeFromForm } from "@/lib/utils";
+import {
+  formatEventDateTime,
+  parseEventTimeFromForm,
+  parseOptionalDateFromForm,
+} from "@/lib/utils";
 import {
   GENERAL_EVENT_TYPES,
   GENERAL_EVENT_TYPE_LABELS,
@@ -29,12 +33,19 @@ export function GeneralEventsSection({
   today: string;
 }) {
   const [showForm, setShowForm] = useState(false);
-  const [showPast, setShowPast] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const upcoming = events.filter((e) => e.event_date >= today);
-  const past = events.filter((e) => e.event_date < today).reverse();
+  const undated = events.filter((e) => !e.event_date);
+  const dated = events.filter((e) => e.event_date);
+  const upcoming = dated
+    .filter((e) => e.event_date! >= today)
+    .sort((a, b) => a.event_date!.localeCompare(b.event_date!));
+  const past = dated
+    .filter((e) => e.event_date! < today)
+    .sort((a, b) => b.event_date!.localeCompare(a.event_date!));
+
+  const hasAny = undated.length + upcoming.length + past.length > 0;
 
   return (
     <section>
@@ -42,7 +53,7 @@ export function GeneralEventsSection({
         <div>
           <h2 className="text-sm font-medium">一般予定</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            合同説明会・セミナーなど企業に紐づかない予定（過去の予定も保持されます）
+            期日なしは削除するまで残ります。過去の予定も一覧で確認できます
           </p>
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)}>
@@ -57,17 +68,13 @@ export function GeneralEventsSection({
       )}
 
       <Card>
-        {upcoming.length === 0 && past.length === 0 ? (
+        {!hasAny ? (
           <p className="text-sm text-muted-foreground text-center py-2">予定なし</p>
         ) : (
-          <>
-            {upcoming.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-2">
-                これからの予定はありません
-              </p>
-            ) : (
-              <ul className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
-                {upcoming.slice(0, 8).map((event) => (
+          <div className={`space-y-4 ${isPending ? "opacity-60" : ""}`}>
+            {undated.length > 0 && (
+              <EventGroup title="期日なし">
+                {undated.map((event) => (
                   <GeneralEventItem
                     key={event.id}
                     event={event}
@@ -77,60 +84,75 @@ export function GeneralEventsSection({
                       setShowForm(false);
                       setEditingEventId(event.id);
                     }}
-                    onDelete={() => {
-                      if (confirm("この予定を削除しますか？\n（削除は取り消せません）")) {
-                        startTransition(() => deleteGeneralEvent(event.id));
-                      }
-                    }}
+                    onDelete={() => confirmDelete(event.id, startTransition)}
                     onEditSuccess={() => setEditingEventId(null)}
                     onEditCancel={() => setEditingEventId(null)}
                   />
                 ))}
-              </ul>
+              </EventGroup>
+            )}
+            {upcoming.length > 0 && (
+              <EventGroup title="これから">
+                {upcoming.map((event) => (
+                  <GeneralEventItem
+                    key={event.id}
+                    event={event}
+                    editingEventId={editingEventId}
+                    isPending={isPending}
+                    onEdit={() => {
+                      setShowForm(false);
+                      setEditingEventId(event.id);
+                    }}
+                    onDelete={() => confirmDelete(event.id, startTransition)}
+                    onEditSuccess={() => setEditingEventId(null)}
+                    onEditCancel={() => setEditingEventId(null)}
+                  />
+                ))}
+              </EventGroup>
             )}
             {past.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setShowPast(!showPast)}
-                  className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-                >
-                  {showPast ? "過去の予定を隠す" : `過去の予定を表示（${past.length}件）`}
-                </button>
-                {showPast && (
-                  <ul className={`space-y-2 mt-2 ${isPending ? "opacity-60" : ""}`}>
-                    {past.map((event) => (
-                      <GeneralEventItem
-                        key={event.id}
-                        event={event}
-                        editingEventId={editingEventId}
-                        isPending={isPending}
-                        muted
-                        onEdit={() => {
-                          setShowForm(false);
-                          setEditingEventId(event.id);
-                        }}
-                        onDelete={() => {
-                          if (confirm("この予定を削除しますか？\n（削除は取り消せません）")) {
-                            startTransition(() => deleteGeneralEvent(event.id));
-                          }
-                        }}
-                        onEditSuccess={() => setEditingEventId(null)}
-                        onEditCancel={() => setEditingEventId(null)}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <EventGroup title={`過去（${past.length}件）`}>
+                {past.map((event) => (
+                  <GeneralEventItem
+                    key={event.id}
+                    event={event}
+                    editingEventId={editingEventId}
+                    isPending={isPending}
+                    muted
+                    onEdit={() => {
+                      setShowForm(false);
+                      setEditingEventId(event.id);
+                    }}
+                    onDelete={() => confirmDelete(event.id, startTransition)}
+                    onEditSuccess={() => setEditingEventId(null)}
+                    onEditCancel={() => setEditingEventId(null)}
+                  />
+                ))}
+              </EventGroup>
             )}
-          </>
+          </div>
         )}
-        <Link href="/calendar" className="block text-xs text-muted-foreground hover:underline mt-3">
-          カレンダーで見る →
-        </Link>
       </Card>
     </section>
   );
+}
+
+function EventGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="text-xs font-medium text-muted-foreground mb-2">{title}</h3>
+      <ul className="space-y-2">{children}</ul>
+    </div>
+  );
+}
+
+function confirmDelete(
+  id: string,
+  startTransition: ReturnType<typeof useTransition>[1]
+) {
+  if (confirm("この予定を削除しますか？\n（削除は取り消せません）")) {
+    startTransition(() => deleteGeneralEvent(id));
+  }
 }
 
 function GeneralEventItem({
@@ -153,7 +175,7 @@ function GeneralEventItem({
   onEditCancel: () => void;
 }) {
   return (
-    <li className={`text-sm py-2 border-b border-border last:border-0 ${muted ? "opacity-75" : ""}`}>
+    <li className={`text-sm py-2 border-b border-border last:border-0 ${muted ? "opacity-80" : ""}`}>
       {editingEventId === event.id ? (
         <GeneralEventForm event={event} onSuccess={onEditSuccess} onCancel={onEditCancel} />
       ) : (
@@ -205,7 +227,7 @@ function GeneralEventForm({
     const data = {
       title: form.get("title") as string,
       type: form.get("type") as GeneralEventType,
-      event_date: form.get("event_date") as string,
+      event_date: parseOptionalDateFromForm(form),
       event_time: parseEventTimeFromForm(form),
       location: (form.get("location") as string) || null,
       memo: (form.get("memo") as string) || null,
@@ -237,8 +259,8 @@ function GeneralEventForm({
             ))}
           </Select>
         </Field>
-        <Field label="日程 *">
-          <Input type="date" name="event_date" required defaultValue={event?.event_date ?? ""} />
+        <Field label="日程">
+          <OptionalDateField name="event_date" defaultValue={event?.event_date} />
         </Field>
       </div>
       <Field label="開催時間">
