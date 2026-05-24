@@ -16,7 +16,11 @@ export async function getGeneralEvents() {
     .select("*")
     .order("event_date", { ascending: true });
 
-  if (isMissingGeneralEventsTable(error)) return [];
+  if (isMissingGeneralEventsTable(error)) {
+    throw new Error(
+      "一般予定テーブルが見つかりません。Supabaseで migration.sql を実行してください。"
+    );
+  }
   if (error) throw new Error(error.message);
   return data ?? [];
 }
@@ -28,7 +32,11 @@ export async function getCalendarGeneralEvents(): Promise<CalendarGeneralEventRo
     .select("id, title, type, event_date, event_time")
     .order("event_date", { ascending: true });
 
-  if (isMissingGeneralEventsTable(error)) return [];
+  if (isMissingGeneralEventsTable(error)) {
+    throw new Error(
+      "一般予定テーブルが見つかりません。Supabaseで migration.sql を実行してください。"
+    );
+  }
   if (error) throw new Error(error.message);
   return (data ?? []) as CalendarGeneralEventRow[];
 }
@@ -51,9 +59,22 @@ export async function createGeneralEvent(input: GeneralEventInsert) {
 
 export async function deleteGeneralEvent(id: string) {
   const { supabase } = await getAuthedClient();
-  const { error } = await supabase.from("general_events").delete().eq("id", id);
-  if (isMissingGeneralEventsTable(error)) return;
+  const { data, error } = await supabase
+    .from("general_events")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
+  if (isMissingGeneralEventsTable(error)) {
+    throw new Error(
+      "一般予定テーブルが見つかりません。Supabaseで migration.sql を実行してください。"
+    );
+  }
   if (error) throw new Error(error.message);
+  if (!data) {
+    throw new Error("削除対象の予定が見つかりませんでした（既に削除済みの可能性があります）");
+  }
   revalidateGeneralEventPaths();
 }
 

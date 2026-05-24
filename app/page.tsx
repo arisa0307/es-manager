@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { claimOrphanedUserData } from "@/lib/actions/claim-orphan-data";
 import { getCompanyStats, getCompanies } from "@/lib/actions/companies";
 import { getGeneralEvents } from "@/lib/actions/general-events";
 import { getScheduleForDates } from "@/lib/actions/schedule";
@@ -27,6 +28,7 @@ export default async function DashboardPage() {
   const tomorrow = addDaysToDateString(today, 1);
 
   try {
+    await claimOrphanedUserData();
     [companyStats, taskStats, companies, tasks, generalEvents, todayItems, tomorrowItems] =
       await Promise.all([
       getCompanyStats(),
@@ -75,7 +77,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-6">
-        <GeneralEventsSection events={generalEvents} />
+        <GeneralEventsSection events={generalEvents} today={today} />
       </div>
 
       <div className="grid sm:grid-cols-2 gap-6">
