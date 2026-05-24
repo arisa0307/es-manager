@@ -24,6 +24,7 @@ alter table companies add column if not exists login_id text;
 alter table companies add column if not exists login_password text;
 alter table company_events add column if not exists event_time text;
 alter table general_events add column if not exists event_time text;
+alter table general_events alter column event_date drop not null;
 alter table companies drop column if exists notes;
 
 do $$
@@ -136,7 +137,7 @@ create table if not exists general_events (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   type text not null default 'other' check (type in ('career_fair', 'seminar', 'other')),
-  event_date date not null,
+  event_date date,
   location text,
   memo text,
   created_at timestamptz not null default now(),

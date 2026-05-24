@@ -69,7 +69,7 @@ create table if not exists general_events (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   type text not null default 'other' check (type in ('career_fair', 'seminar', 'other')),
-  event_date date not null,
+  event_date date,
   event_time text,
   location text,
   memo text,
