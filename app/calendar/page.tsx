@@ -2,9 +2,11 @@ import { Suspense } from "react";
 import { getCalendarCompanyEvents } from "@/lib/actions/companies";
 import { getCalendarCompanyScheduleEvents } from "@/lib/actions/company-events";
 import { getCalendarTaskEvents } from "@/lib/actions/tasks";
+import { buildCompanyEventScheduleEntries } from "@/lib/company-event-utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CalendarView } from "@/components/calendar/CalendarView";
 import { Card } from "@/components/ui/Card";
+import { formatTimeRange } from "@/lib/utils";
 import type { CalendarEvent } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -37,14 +39,27 @@ export default async function CalendarPage() {
         companyId: t.company_id ?? undefined,
         href: t.company_id ? `/companies/${t.company_id}` : "/tasks",
       })),
-      ...companyEvents.map((event) => ({
-        id: `e-${event.id}`,
-        date: event.event_date,
-        title: event.event_time ? `${event.title} (${event.event_time})` : event.title,
-        type: event.type as CalendarEvent["type"],
-        companyId: event.company_id,
-        href: `/companies/${event.company_id}`,
-      })),
+      ...companyEvents.flatMap((event) =>
+        buildCompanyEventScheduleEntries(event).map((entry) => {
+          const suffix = entry.isCandidate
+            ? "候補"
+            : entry.scheduleStatus === "tentative"
+              ? "予定"
+              : "";
+          const timeLabel = formatTimeRange(entry.startTime, entry.endTime);
+
+          return {
+            id: `e-${entry.id}`,
+            date: entry.date,
+            title: [event.title, suffix && `(${suffix})`, timeLabel && `(${timeLabel})`]
+              .filter(Boolean)
+              .join(" "),
+            type: event.type as CalendarEvent["type"],
+            companyId: event.company_id,
+            href: `/companies/${event.company_id}`,
+          };
+        })
+      ),
     ];
   } catch (e) {
     error = e instanceof Error ? e.message : "取得に失敗しました";

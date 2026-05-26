@@ -22,7 +22,15 @@ alter table companies add column if not exists web_test_url text;
 alter table companies add column if not exists web_test_notes text;
 alter table companies add column if not exists login_id text;
 alter table companies add column if not exists login_password text;
+alter table company_events add column if not exists schedule_status text not null default 'confirmed';
+alter table company_events add column if not exists event_end_time text;
+alter table company_events add column if not exists candidate_slots jsonb not null default '[]'::jsonb;
 alter table company_events add column if not exists event_time text;
+alter table company_events alter column event_date drop not null;
+update company_events set schedule_status = 'confirmed' where schedule_status is null;
+alter table company_events drop constraint if exists company_events_schedule_status_check;
+alter table company_events add constraint company_events_schedule_status_check
+  check (schedule_status in ('confirmed', 'tentative', 'undecided'));
 alter table general_events add column if not exists event_time text;
 alter table general_events alter column event_date drop not null;
 alter table companies drop column if exists notes;
@@ -106,7 +114,11 @@ create table if not exists company_events (
   company_id uuid not null references companies(id) on delete cascade,
   type text not null check (type in ('internship', 'interview', 'other')),
   title text not null,
-  event_date date not null,
+  schedule_status text not null default 'confirmed' check (schedule_status in ('confirmed', 'tentative', 'undecided')),
+  event_date date,
+  event_time text,
+  event_end_time text,
+  candidate_slots jsonb not null default '[]'::jsonb,
   memo text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

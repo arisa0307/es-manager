@@ -41,6 +41,19 @@ export const COMPANY_EVENT_TYPE_LABELS: Record<CompanyEventType, string> = {
   other: "説明会・その他",
 };
 
+export const EVENT_SCHEDULE_STATUSES = [
+  "confirmed",
+  "tentative",
+  "undecided",
+] as const;
+export type EventScheduleStatus = (typeof EVENT_SCHEDULE_STATUSES)[number];
+
+export const EVENT_SCHEDULE_STATUS_LABELS: Record<EventScheduleStatus, string> = {
+  confirmed: "確定",
+  tentative: "予定",
+  undecided: "未定",
+};
+
 export const GENERAL_EVENT_TYPES = ["career_fair", "seminar", "other"] as const;
 export type GeneralEventType = (typeof GENERAL_EVENT_TYPES)[number];
 
@@ -102,11 +115,20 @@ export type CompanyEvent = {
   company_id: string;
   type: CompanyEventType;
   title: string;
-  event_date: string;
+  schedule_status?: EventScheduleStatus;
+  event_date: string | null;
   event_time?: string | null;
+  event_end_time?: string | null;
+  candidate_slots?: CompanyEventCandidateSlot[] | null;
   memo: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type CompanyEventCandidateSlot = {
+  date: string;
+  start_time?: string | null;
+  end_time?: string | null;
 };
 
 export type ESTemplate = {
@@ -176,8 +198,11 @@ export type CompanyEventInsert = {
   company_id: string;
   type: CompanyEventType;
   title: string;
-  event_date: string;
+  schedule_status?: EventScheduleStatus;
+  event_date?: string | null;
   event_time?: string | null;
+  event_end_time?: string | null;
+  candidate_slots?: CompanyEventCandidateSlot[] | null;
   memo?: string | null;
 };
 
@@ -252,5 +277,13 @@ export type CalendarGeneralEventRow = Pick<
 
 export type CalendarCompanyEventRow = Pick<
   CompanyEvent,
-  "id" | "company_id" | "type" | "title" | "event_date" | "event_time"
+  | "id"
+  | "company_id"
+  | "type"
+  | "title"
+  | "schedule_status"
+  | "event_date"
+  | "event_time"
+  | "event_end_time"
+  | "candidate_slots"
 >;
