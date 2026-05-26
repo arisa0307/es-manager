@@ -164,12 +164,24 @@ export function formatWeekday(date: string | null): string {
 
 export function formatEventDateTime(
   date: string | null,
-  time: string | null | undefined
+  time: string | null | undefined,
+  endTime?: string | null | undefined
 ): string {
-  if (!date) return time ? `期日なし · ${time}` : "期日なし";
+  const timeLabel = formatTimeRange(time, endTime);
+  if (!date) return timeLabel ? `期日なし · ${timeLabel}` : "期日なし";
   const dateLabel = formatDateFull(date);
-  if (!time) return dateLabel;
-  return `${dateLabel} ${time}`;
+  if (!timeLabel) return dateLabel;
+  return `${dateLabel} ${timeLabel}`;
+}
+
+export function formatTimeRange(
+  startTime: string | null | undefined,
+  endTime?: string | null | undefined
+) {
+  if (startTime && endTime) return `${startTime} - ${endTime}`;
+  if (startTime) return startTime;
+  if (endTime) return `〜 ${endTime}`;
+  return "";
 }
 
 export function parseOptionalDateFromForm(form: FormData, name = "event_date"): string | null {

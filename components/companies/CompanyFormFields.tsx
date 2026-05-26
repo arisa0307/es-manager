@@ -9,9 +9,12 @@ import {
   COMPANY_RESULTS,
   COMPANY_STATUSES,
   DESIRED_LEVELS,
+  EVENT_SCHEDULE_STATUSES,
+  EVENT_SCHEDULE_STATUS_LABELS,
   type Company,
   type CompanyStatus,
   type DesiredLevel,
+  type EventScheduleStatus,
 } from "@/types";
 
 export function parseCompanyFormData(form: FormData) {
@@ -38,13 +41,18 @@ export function parseCompanyFormData(form: FormData) {
 
 export function parseOptionalEventFormData(form: FormData) {
   const title = (form.get("event_title") as string)?.trim();
-  const event_date = form.get("event_date") as string;
-  if (!title || !event_date) return null;
+  const schedule_status =
+    ((form.get("event_schedule_status") as EventScheduleStatus) || "confirmed");
+  const event_date = (form.get("event_date") as string)?.trim() || null;
+  if (!title || (!event_date && schedule_status !== "undecided")) return null;
   return {
     type: form.get("event_type") as "internship" | "interview" | "other",
     title,
+    schedule_status,
     event_date,
     event_time: (form.get("event_time") as string)?.trim() || null,
+    event_end_time: (form.get("event_end_time") as string)?.trim() || null,
+    candidate_slots: [],
     memo: (form.get("event_memo") as string) || null,
   };
 }
@@ -112,7 +120,10 @@ export function CompanyFormFields({
       </section>
 
       <section className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-3">
-        <SectionTitle title="重要項目" description="締切・次のアクション・メモ" />
+        <SectionTitle
+          title="進行・インターン補足"
+          description="日付のある予定は下の「インターン・面接日程」へ。ここには補足情報を残せます"
+        />
         <Field label="締切・期日">
           <OptionalDateField name="deadline" defaultValue={company?.deadline} />
         </Field>
@@ -124,18 +135,6 @@ export function CompanyFormFields({
             placeholder="次にやること"
           />
         </Field>
-        <Field label="企業メモ">
-          <Textarea
-            name="memo"
-            rows={4}
-            defaultValue={company?.memo ?? ""}
-            placeholder="事業内容、気になった点、面談で聞きたいことなど"
-          />
-        </Field>
-      </section>
-
-      <section className="space-y-3 rounded-lg border border-border p-3">
-        <SectionTitle title="インターン情報" />
         <Field label="インターン名">
           <Input
             name="internship_name"
@@ -156,6 +155,14 @@ export function CompanyFormFields({
             rows={3}
             defaultValue={company?.internship_memo ?? ""}
             placeholder="内容、準備すること、気になる点など"
+          />
+        </Field>
+        <Field label="企業メモ">
+          <Textarea
+            name="memo"
+            rows={4}
+            defaultValue={company?.memo ?? ""}
+            placeholder="事業内容、気になった点、面談で聞きたいことなど"
           />
         </Field>
       </section>
@@ -211,7 +218,7 @@ export function CompanyFormFields({
         <section className="space-y-3 rounded-lg border border-border p-3">
           <SectionTitle
             title="初回の日程（任意）"
-            description="登録後は詳細ページでも追加できます"
+            description="未定・開始/終了時刻はここで入力できます。候補日は登録後に詳細ページで複数追加できます"
           />
           <div className="grid grid-cols-2 gap-3">
             <Field label="種類">
@@ -223,13 +230,29 @@ export function CompanyFormFields({
                 ))}
               </Select>
             </Field>
-            <Field label="日程">
-              <Input type="date" name="event_date" />
+            <Field label="状態">
+              <Select name="event_schedule_status" defaultValue="confirmed">
+                {EVENT_SCHEDULE_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {EVENT_SCHEDULE_STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </Select>
             </Field>
           </div>
-          <Field label="開催時間">
-            <Input type="time" name="event_time" />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="日程（未定なら空欄）">
+              <Input type="date" name="event_date" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="開始">
+                <Input type="time" name="event_time" />
+              </Field>
+              <Field label="終了">
+                <Input type="time" name="event_end_time" />
+              </Field>
+            </div>
+          </div>
           <Field label="タイトル">
             <Input name="event_title" placeholder="例: 1次面接 / 1dayインターン" />
           </Field>

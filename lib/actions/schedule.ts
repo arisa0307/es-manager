@@ -1,11 +1,15 @@
 "use server";
 
+import {
+  buildCompanyEventScheduleEntries,
+  getCompanyEventScheduleLabel,
+} from "@/lib/company-event-utils";
 import { getCalendarCompanyEvents } from "@/lib/actions/companies";
 import { getCalendarCompanyScheduleEvents } from "@/lib/actions/company-events";
 import { getCalendarGeneralEvents } from "@/lib/actions/general-events";
 import { getCalendarTaskEvents } from "@/lib/actions/tasks";
+import { formatTimeRange } from "@/lib/utils";
 import {
-  COMPANY_EVENT_TYPE_LABELS,
   GENERAL_EVENT_TYPE_LABELS,
   type CompanyEventType,
   type GeneralEventType,
@@ -39,16 +43,21 @@ export async function getScheduleForDates(dates: string[]) {
   }
 
   for (const event of companyEvents) {
-    if (!dateSet.has(event.event_date)) continue;
-    items.push({
-      id: `e-${event.id}`,
-      date: event.event_date,
-      title: event.title,
-      kind: "company_event",
-      label: COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType],
-      href: `/companies/${event.company_id}`,
-      time: event.event_time ?? null,
-    });
+    for (const entry of buildCompanyEventScheduleEntries(event)) {
+      if (!dateSet.has(entry.date)) continue;
+      items.push({
+        id: `e-${entry.id}`,
+        date: entry.date,
+        title: event.title,
+        kind: "company_event",
+        label: getCompanyEventScheduleLabel(
+          event.type as CompanyEventType,
+          entry
+        ),
+        href: `/companies/${event.company_id}`,
+        time: formatTimeRange(entry.startTime, entry.endTime) || null,
+      });
+    }
   }
 
   for (const company of companyDeadlines) {

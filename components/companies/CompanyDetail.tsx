@@ -15,6 +15,10 @@ import {
 import { CompanyEventForm } from "./CompanyEventForm";
 import { CompanyUpcomingSchedule } from "./CompanyUpcomingSchedule";
 import { buildCompanyUpcomingSchedule } from "@/lib/company-schedule";
+import {
+  buildCompanyEventScheduleEntries,
+  getCompanyEventStatusText,
+} from "@/lib/company-event-utils";
 import { ESForm } from "@/components/es/ESForm";
 import { TaskForm } from "@/components/tasks/TaskForm";
 import {
@@ -24,6 +28,7 @@ import {
   isOverdue,
   countWords,
   formatTags,
+  formatTimeRange,
 } from "@/lib/utils";
 import {
   TASK_PRIORITY_LABELS,
@@ -141,59 +146,19 @@ export function CompanyDetail({
         ) : (
           <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
             {events.map((event) => (
-              <div
+              <EventCard
                 key={event.id}
-                className="rounded-lg border border-border bg-muted/20 px-3 py-2.5"
-              >
-                {editingEventId === event.id ? (
-                  <CompanyEventForm
-                    companyId={company.id}
-                    event={event}
-                    onSuccess={() => setEditingEventId(null)}
-                    onCancel={() => setEditingEventId(null)}
-                  />
-                ) : (
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={getEventTypeColor(event.type)}>
-                          {COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType]}
-                        </Badge>
-                        <p className="text-sm font-medium">{event.title}</p>
-                        <span className="text-xs text-muted-foreground">
-                          {formatEventDateTime(event.event_date, event.event_time)}
-                        </span>
-                      </div>
-                      {event.memo && (
-                        <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-2">
-                          {event.memo}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setShowEvent(false);
-                          setEditingEventId(event.id);
-                        }}
-                        disabled={isPending}
-                      >
-                        編集
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDeleteEvent(event.id)}
-                        disabled={isPending}
-                      >
-                        削除
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                companyId={company.id}
+                event={event}
+                editing={editingEventId === event.id}
+                isPending={isPending}
+                onEdit={() => {
+                  setShowEvent(false);
+                  setEditingEventId(event.id);
+                }}
+                onEditDone={() => setEditingEventId(null)}
+                onDelete={() => handleDeleteEvent(event.id)}
+              />
             ))}
           </div>
         )}
@@ -336,6 +301,98 @@ function SectionHeader({
     <div className="flex items-center justify-between mb-3">
       <h2 className="text-sm font-medium text-foreground">{title}</h2>
       {action}
+    </div>
+  );
+}
+
+function EventCard({
+  companyId,
+  event,
+  editing,
+  isPending,
+  onEdit,
+  onEditDone,
+  onDelete,
+}: {
+  companyId: string;
+  event: CompanyEvent;
+  editing: boolean;
+  isPending: boolean;
+  onEdit: () => void;
+  onEditDone: () => void;
+  onDelete: () => void;
+}) {
+  const scheduleEntries = buildCompanyEventScheduleEntries(event);
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+      {editing ? (
+        <CompanyEventForm
+          companyId={companyId}
+          event={event}
+          onSuccess={onEditDone}
+          onCancel={onEditDone}
+        />
+      ) : (
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className={getEventTypeColor(event.type)}>
+                {COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType]}
+              </Badge>
+              <p className="text-sm font-medium">{event.title}</p>
+            </div>
+            {scheduleEntries.length === 0 ? (
+              <p className="text-xs text-muted-foreground mt-1">日程未定</p>
+            ) : (
+              <ul className="mt-1 space-y-1">
+                {scheduleEntries.map((entry, index) => (
+                  <li
+                    key={entry.id}
+                    className="text-xs text-muted-foreground flex flex-wrap items-center gap-2"
+                  >
+                    <span className="font-medium text-foreground/80">
+                      {getCompanyEventStatusText(entry)}
+                      {entry.isCandidate &&
+                        ` ${
+                          scheduleEntries.filter(
+                            (candidate, candidateIndex) =>
+                              candidate.isCandidate && candidateIndex <= index
+                          ).length
+                        }`}
+                    </span>
+                    <span>
+                      {formatEventDateTime(
+                        entry.date,
+                        entry.startTime,
+                        entry.endTime
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!scheduleEntries.length && (event.event_time || event.event_end_time) && (
+              <p className="text-xs text-muted-foreground mt-1">
+                時間 {formatTimeRange(event.event_time, event.event_end_time)}
+              </p>
+            )}
+            {event.memo && (
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-2">
+                {event.memo}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <Button variant="secondary" size="sm" onClick={onEdit} disabled={isPending}>
+              編集
+            </Button>
+            <Button variant="danger" size="sm" onClick={onDelete} disabled={isPending}>
+              削除
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,10 @@ export default async function DashboardPage() {
   let companies: Awaited<ReturnType<typeof getCompanies>> = [];
   let activeCompanies: Awaited<ReturnType<typeof getCompanies>> = [];
   let tasks: Awaited<ReturnType<typeof getTasks>> = [];
+  let nearestTaskByCompany = new Map<
+    string,
+    Awaited<ReturnType<typeof getTasks>>[number]
+  >();
   let generalEvents: Awaited<ReturnType<typeof getGeneralEvents>> = [];
   let todayItems: ScheduleItem[] = [];
   let tomorrowItems: ScheduleItem[] = [];
@@ -44,6 +48,11 @@ export default async function DashboardPage() {
         ["マイページ登録済み", "ES", "Webテスト", "面接"].includes(c.status)
       )
       .slice(0, 6);
+    nearestTaskByCompany = new Map();
+    for (const task of tasks) {
+      if (!task.company_id || nearestTaskByCompany.has(task.company_id)) continue;
+      nearestTaskByCompany.set(task.company_id, task);
+    }
     companies = companies.filter((c) => !c.deadline || c.deadline >= today).slice(0, 5);
     tasks = tasks.filter((t) => t.deadline && t.deadline >= today).slice(0, 5);
   } catch (e) {
@@ -134,9 +143,16 @@ export default async function DashboardPage() {
                   >
                     <span className="min-w-0">
                       <span className="font-medium text-foreground">{c.name}</span>
+                      {nearestTaskByCompany.get(c.id) && (
+                        <span className="block text-xs text-muted-foreground truncate">
+                          直近タスク: {nearestTaskByCompany.get(c.id)?.title}
+                          {nearestTaskByCompany.get(c.id)?.deadline &&
+                            ` (${formatDate(nearestTaskByCompany.get(c.id)?.deadline ?? null)})`}
+                        </span>
+                      )}
                       {c.next_action && (
                         <span className="block text-xs text-muted-foreground truncate">
-                          次: {c.next_action}
+                          次のメモ: {c.next_action}
                         </span>
                       )}
                     </span>

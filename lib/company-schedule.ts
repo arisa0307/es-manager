@@ -1,11 +1,15 @@
 import {
-  COMPANY_EVENT_TYPE_LABELS,
   type Company,
   type CompanyEvent,
   type CompanyEventType,
   type ScheduleItem,
   type Task,
 } from "@/types";
+import {
+  buildCompanyEventScheduleEntries,
+  getCompanyEventScheduleLabel,
+} from "@/lib/company-event-utils";
+import { formatTimeRange, getTodayString } from "@/lib/utils";
 
 /** 企業詳細用: 締切・日程・タスクを日付の近い順に並べる */
 export function buildCompanyUpcomingSchedule(
@@ -13,7 +17,7 @@ export function buildCompanyUpcomingSchedule(
   tasks: Task[],
   events: CompanyEvent[]
 ): ScheduleItem[] {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayString();
   const href = `/companies/${company.id}`;
   const items: ScheduleItem[] = [];
 
@@ -29,16 +33,21 @@ export function buildCompanyUpcomingSchedule(
   }
 
   for (const event of events) {
-    items.push({
-      id: `event-${event.id}`,
-      date: event.event_date,
-      title: event.title,
-      kind: "company_event",
-      label: COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType],
-      href: `#company-events`,
-      time: event.event_time,
-      memo: event.memo,
-    });
+    for (const entry of buildCompanyEventScheduleEntries(event)) {
+      items.push({
+        id: `event-${entry.id}`,
+        date: entry.date,
+        title: event.title,
+        kind: "company_event",
+        label: getCompanyEventScheduleLabel(
+          event.type as CompanyEventType,
+          entry
+        ),
+        href: `#company-events`,
+        time: formatTimeRange(entry.startTime, entry.endTime) || null,
+        memo: event.memo,
+      });
+    }
   }
 
   for (const task of tasks) {
