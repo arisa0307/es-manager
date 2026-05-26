@@ -175,9 +175,14 @@ export default async function DashboardPage() {
           ) : (
             <ul className="space-y-2">
               {tasks.map((t) => (
-                <li key={t.id} className="text-sm flex justify-between">
-                  <span>{t.title}</span>
-                  <span className="text-muted-foreground">
+                <li key={t.id} className="text-sm flex items-start justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block">{t.title}</span>
+                    <span className="block text-xs text-muted-foreground truncate">
+                      {t.companies?.name ?? "企業未設定"}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-muted-foreground">
                     {formatDate(t.deadline)}
                   </span>
                 </li>
