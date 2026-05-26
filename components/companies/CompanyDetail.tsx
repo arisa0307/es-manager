@@ -96,29 +96,26 @@ export function CompanyDetail({
           <div>
             <h1 className="text-2xl font-semibold text-foreground">{company.name}</h1>
             <p className="text-xs text-muted-foreground mt-1">
-              下のフォームから直接編集できます
+              直近の予定・タスクを上にまとめています。企業情報の編集は下でできます
             </p>
           </div>
           <Button variant="danger" size="sm" onClick={handleDelete} disabled={isPending}>
             削除
           </Button>
         </div>
-
-        <form
-          key={`${company.id}-${company.updated_at}`}
-          onSubmit={handleSaveCompany}
-          className="space-y-3"
-        >
-          {saveError && (
-            <p className="text-sm text-red-600 bg-red-500/10 rounded-md px-3 py-2">
-              {saveError}
-            </p>
+        <div className="flex flex-wrap gap-2">
+          <Badge className="bg-muted text-muted-foreground">{company.industry ?? "業界未設定"}</Badge>
+          {company.status && (
+            <Badge className="bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+              {company.status}
+            </Badge>
           )}
-          <CompanyFormFields company={company} />
-          <Button type="submit" disabled={isSaving}>
-            {isSaving ? "保存中..." : "変更を保存"}
-          </Button>
-        </form>
+          {company.next_action && (
+            <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              次: {company.next_action}
+            </Badge>
+          )}
+        </div>
       </Card>
 
       <CompanyUpcomingSchedule items={upcomingItems} />
@@ -159,6 +156,61 @@ export function CompanyDetail({
                 onEditDone={() => setEditingEventId(null)}
                 onDelete={() => handleDeleteEvent(event.id)}
               />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card id="company-tasks">
+        <SectionHeader
+          title="タスク"
+          action={
+            <Button size="sm" onClick={() => setShowTask(!showTask)}>
+              {showTask ? "閉じる" : "+ 追加"}
+            </Button>
+          }
+        />
+        {showTask && (
+          <div className="mb-4 pb-4 border-b border-border">
+            <TaskForm
+              companies={[{ id: company.id, name: company.name }]}
+              defaultCompanyId={company.id}
+              onSuccess={() => setShowTask(false)}
+              onCancel={() => setShowTask(false)}
+            />
+          </div>
+        )}
+        {tasks.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">タスクがありません</p>
+        ) : (
+          <div className="space-y-2">
+            {tasks.map((task) => (
+              <div key={task.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={
+                      task.is_done
+                        ? "line-through text-muted-foreground text-sm"
+                        : "font-medium text-sm"
+                    }
+                  >
+                    {task.title}
+                  </span>
+                  <Badge className={getPriorityColor(task.priority as TaskPriority)}>
+                    {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
+                  </Badge>
+                  {task.deadline && (
+                    <span
+                      className={`text-xs ${isOverdue(task.deadline, task.is_done) ? "text-red-600" : "text-muted-foreground"}`}
+                    >
+                      {formatDate(task.deadline)}
+                    </span>
+                  )}
+                </div>
+                {task.memo && (
+                  <p className="text-xs text-muted-foreground mt-1">{task.memo}</p>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -217,59 +269,23 @@ export function CompanyDetail({
         )}
       </Card>
 
-      <Card id="company-tasks">
-        <SectionHeader
-          title="タスク"
-          action={
-            <Button size="sm" onClick={() => setShowTask(!showTask)}>
-              {showTask ? "閉じる" : "+ 追加"}
-            </Button>
-          }
-        />
-        {showTask && (
-          <div className="mb-4 pb-4 border-b border-border">
-            <TaskForm
-              companies={[{ id: company.id, name: company.name }]}
-              defaultCompanyId={company.id}
-              onSuccess={() => setShowTask(false)}
-              onCancel={() => setShowTask(false)}
-            />
-          </div>
-        )}
-        {tasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">タスクがありません</p>
-        ) : (
-          <div className="space-y-2">
-            {tasks.map((task) => (
-              <div key={task.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={
-                      task.is_done
-                        ? "line-through text-muted-foreground text-sm"
-                        : "font-medium text-sm"
-                    }
-                  >
-                    {task.title}
-                  </span>
-                  <Badge className={getPriorityColor(task.priority as TaskPriority)}>
-                    {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
-                  </Badge>
-                  {task.deadline && (
-                    <span
-                      className={`text-xs ${isOverdue(task.deadline, task.is_done) ? "text-red-600" : "text-muted-foreground"}`}
-                    >
-                      {formatDate(task.deadline)}
-                    </span>
-                  )}
-                </div>
-                {task.memo && (
-                  <p className="text-xs text-muted-foreground mt-1">{task.memo}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+      <Card>
+        <SectionHeader title="企業情報" />
+        <form
+          key={`${company.id}-${company.updated_at}`}
+          onSubmit={handleSaveCompany}
+          className="space-y-3"
+        >
+          {saveError && (
+            <p className="text-sm text-red-600 bg-red-500/10 rounded-md px-3 py-2">
+              {saveError}
+            </p>
+          )}
+          <CompanyFormFields company={company} />
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? "保存中..." : "変更を保存"}
+          </Button>
+        </form>
       </Card>
 
       <Link href="/companies" className="text-sm text-muted-foreground hover:underline">
