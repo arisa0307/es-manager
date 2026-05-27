@@ -1,13 +1,12 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 
-const TOKEN_BYTES = 32;
-
 function generateToken() {
-  return randomBytes(TOKEN_BYTES).toString("base64url");
+  const first = crypto.randomUUID().replaceAll("-", "");
+  const second = crypto.randomUUID().replaceAll("-", "");
+  return `${first}${second}`;
 }
 
 export async function getCalendarFeedToken() {
