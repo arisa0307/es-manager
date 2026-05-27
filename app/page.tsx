@@ -20,6 +20,7 @@ export default async function DashboardPage() {
   let taskStats = { pending: 0, completed: 0, overdue: 0, total: 0 };
   let companies: Awaited<ReturnType<typeof getCompanies>> = [];
   let activeCompanies: Awaited<ReturnType<typeof getCompanies>> = [];
+  let activeCompaniesCount = 0;
   let tasks: Awaited<ReturnType<typeof getTasks>> = [];
   let nearestTaskByCompany = new Map<
     string,
@@ -46,8 +47,9 @@ export default async function DashboardPage() {
     activeCompanies = companies
       .filter((c) =>
         ["マイページ登録済み", "ES", "Webテスト", "面接"].includes(c.status)
-      )
-      .slice(0, 6);
+      );
+    activeCompaniesCount = activeCompanies.length;
+    activeCompanies = activeCompanies.slice(0, 6);
     nearestTaskByCompany = new Map();
     for (const task of tasks) {
       if (!task.company_id || nearestTaskByCompany.has(task.company_id)) continue;
@@ -73,7 +75,7 @@ export default async function DashboardPage() {
         <Stat label="企業" value={companyStats.total} />
         <Stat label="未完了タスク" value={taskStats.pending} />
         <Stat label="完了" value={taskStats.completed} />
-        <Stat label="持ち駒" value={activeCompanies.length} />
+        <Stat label="持ち駒" value={activeCompaniesCount} />
       </div>
 
       <div className="mb-6">
