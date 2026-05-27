@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { deleteTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge } from "@/components/ui/Badge";
+import { LinkifiedText } from "@/components/ui/LinkifiedText";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -65,7 +66,11 @@ export function TaskList({
                 <p className={`text-sm font-medium ${task.is_done ? "line-through text-muted-foreground" : ""}`}>
                   {task.title}
                 </p>
-                {task.memo && <p className="text-xs text-muted-foreground mt-0.5">{task.memo}</p>}
+                {task.memo && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    <LinkifiedText text={task.memo} />
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2 mt-1.5">
                   <Badge className={getPriorityColor(task.priority as TaskPriority)}>
                     {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}

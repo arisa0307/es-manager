@@ -1,4 +1,5 @@
 import { CopyableInput } from "@/components/ui/CopyableInput";
+import { ExternalUrlLink, LinkifiedText } from "@/components/ui/LinkifiedText";
 import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -93,20 +94,12 @@ export function CompanyFormFields({
           <div className="space-y-1.5">
             <Input
               name="url"
-              type="url"
+              type="text"
+              inputMode="url"
               defaultValue={company?.url ?? ""}
               placeholder="https://"
             />
-            {company?.url && (
-              <a
-                href={company.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block text-xs text-muted-foreground hover:underline break-all"
-              >
-                {company.url}
-              </a>
-            )}
+            {company?.url && <ExternalUrlLink url={company.url} />}
           </div>
         </Field>
         <div className="grid grid-cols-2 gap-3">
@@ -158,11 +151,19 @@ export function CompanyFormFields({
           />
         </Field>
         <Field label="場所・URL">
-          <Input
-            name="internship_location"
-            defaultValue={company?.internship_location ?? ""}
-            placeholder="オンライン / 東京本社 / https://..."
-          />
+          <div className="space-y-1.5">
+            <Input
+              name="internship_location"
+              type="text"
+              defaultValue={company?.internship_location ?? ""}
+              placeholder="オンライン / 東京本社 / https://..."
+            />
+            {company?.internship_location && (
+              <p className="text-xs text-muted-foreground">
+                <LinkifiedText text={company.internship_location} />
+              </p>
+            )}
+          </div>
         </Field>
         <Field label="インターンメモ">
           <Textarea
@@ -188,12 +189,16 @@ export function CompanyFormFields({
           description="企業データとして Supabase に保存されます"
         />
         <Field label="Webテスト URL">
-          <Input
-            name="web_test_url"
-            type="url"
-            defaultValue={company?.web_test_url ?? ""}
-            placeholder="https://"
-          />
+          <div className="space-y-1.5">
+            <Input
+              name="web_test_url"
+              type="text"
+              inputMode="url"
+              defaultValue={company?.web_test_url ?? ""}
+              placeholder="https://"
+            />
+            {company?.web_test_url && <ExternalUrlLink url={company.web_test_url} />}
+          </div>
         </Field>
         <Field label="Webテストメモ">
           <Textarea

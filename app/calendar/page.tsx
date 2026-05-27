@@ -87,7 +87,16 @@ export default async function CalendarPage() {
   return (
     <>
       <PageHeader title="カレンダー" description="企業締切・タスク・面接/インターン" />
-      <Card className="mb-4">
+      {error ? (
+        <Card className="border-red-500/30 bg-red-500/5">
+          <p className="text-sm text-red-600">{error}</p>
+        </Card>
+      ) : (
+        <Suspense>
+          <CalendarView events={events} />
+        </Suspense>
+      )}
+      <Card className="mt-6">
         <div className="space-y-3">
           <h2 className="text-sm font-medium">Macカレンダー連携（自動同期）</h2>
           <p className="text-xs text-muted-foreground">
@@ -120,15 +129,6 @@ export default async function CalendarPage() {
           )}
         </div>
       </Card>
-      {error ? (
-        <Card className="border-red-500/30 bg-red-500/5">
-          <p className="text-sm text-red-600">{error}</p>
-        </Card>
-      ) : (
-        <Suspense>
-          <CalendarView events={events} />
-        </Suspense>
-      )}
     </>
   );
 }

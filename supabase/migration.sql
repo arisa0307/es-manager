@@ -32,6 +32,7 @@ alter table company_events drop constraint if exists company_events_schedule_sta
 alter table company_events add constraint company_events_schedule_status_check
   check (schedule_status in ('confirmed', 'tentative', 'undecided'));
 alter table general_events add column if not exists event_time text;
+alter table general_events add column if not exists event_end_time text;
 alter table general_events alter column event_date drop not null;
 alter table companies drop column if exists notes;
 

@@ -29,7 +29,7 @@ export async function getCalendarGeneralEvents(): Promise<CalendarGeneralEventRo
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("general_events")
-    .select("id, title, type, event_date, event_time")
+    .select("id, title, type, event_date, event_time, event_end_time")
     .not("event_date", "is", null)
     .order("event_date", { ascending: true });
 
