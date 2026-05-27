@@ -2,8 +2,14 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
+  const isCalendarFeedApi = pathname === "/api/calendar.ics";
+
+  if (isCalendarFeedApi) {
+    return NextResponse.next();
+  }
+
+  const { supabaseResponse, user } = await updateSession(request);
 
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 

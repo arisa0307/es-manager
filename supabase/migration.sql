@@ -145,6 +145,70 @@ begin
 end;
 $$;
 
+create table if not exists calendar_subscriptions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  token text not null unique,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_calendar_subscriptions_token on calendar_subscriptions(token);
+
+drop trigger if exists calendar_subscriptions_updated_at on calendar_subscriptions;
+create trigger calendar_subscriptions_updated_at before update on calendar_subscriptions
+  for each row execute function update_updated_at();
+
+alter table calendar_subscriptions enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'calendar_subscriptions'
+      and policyname = 'Users select own calendar_subscriptions'
+  ) then
+    create policy "Users select own calendar_subscriptions"
+      on calendar_subscriptions for select
+      using (auth.uid() = user_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'calendar_subscriptions'
+      and policyname = 'Users insert own calendar_subscriptions'
+  ) then
+    create policy "Users insert own calendar_subscriptions"
+      on calendar_subscriptions for insert
+      with check (auth.uid() = user_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'calendar_subscriptions'
+      and policyname = 'Users update own calendar_subscriptions'
+  ) then
+    create policy "Users update own calendar_subscriptions"
+      on calendar_subscriptions for update
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'calendar_subscriptions'
+      and policyname = 'Users delete own calendar_subscriptions'
+  ) then
+    create policy "Users delete own calendar_subscriptions"
+      on calendar_subscriptions for delete
+      using (auth.uid() = user_id);
+  end if;
+end;
+$$;
+
 create table if not exists general_events (
   id uuid primary key default gen_random_uuid(),
   title text not null,
