@@ -194,6 +194,14 @@ export function parseEventTimeFromForm(form: FormData, name = "event_time"): str
   return value || null;
 }
 
+export function parseEventEndTimeFromForm(
+  form: FormData,
+  name = "event_end_time"
+): string | null {
+  const value = (form.get(name) as string)?.trim();
+  return value || null;
+}
+
 export function formatScheduleDaysLabel(date: string, today?: string): string {
   const base = today ?? new Date().toISOString().split("T")[0];
   const target = new Date(date + "T00:00:00");

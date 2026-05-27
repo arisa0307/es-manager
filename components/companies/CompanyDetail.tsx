@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { deleteCompany, updateCompany } from "@/lib/actions/companies";
 import { deleteCompanyEvent } from "@/lib/actions/company-events";
 import { Badge } from "@/components/ui/Badge";
+import { LinkifiedText } from "@/components/ui/LinkifiedText";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
@@ -208,7 +209,9 @@ export function CompanyDetail({
                   )}
                 </div>
                 {task.memo && (
-                  <p className="text-xs text-muted-foreground mt-1">{task.memo}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <LinkifiedText text={task.memo} />
+                  </p>
                 )}
               </div>
             ))}
@@ -394,8 +397,8 @@ function EventCard({
               </p>
             )}
             {event.memo && (
-              <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-2">
-                {event.memo}
+              <p className="text-xs text-muted-foreground mt-2">
+                <LinkifiedText text={event.memo} />
               </p>
             )}
           </div>

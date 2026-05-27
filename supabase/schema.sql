@@ -74,6 +74,7 @@ create table if not exists general_events (
   type text not null default 'other' check (type in ('career_fair', 'seminar', 'other')),
   event_date date,
   event_time text,
+  event_end_time text,
   location text,
   memo text,
   user_id uuid references auth.users(id) on delete cascade,

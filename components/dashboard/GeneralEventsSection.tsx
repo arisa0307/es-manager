@@ -12,9 +12,11 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Select } from "@/components/ui/Select";
+import { LinkifiedText } from "@/components/ui/LinkifiedText";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   formatEventDateTime,
+  parseEventEndTimeFromForm,
   parseEventTimeFromForm,
   parseOptionalDateFromForm,
 } from "@/lib/utils";
@@ -200,11 +202,21 @@ function GeneralEventItem({
               <span className="font-medium">{event.title}</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {formatEventDateTime(event.event_date, event.event_time)}
-              {event.location && ` · ${event.location}`}
+              {formatEventDateTime(
+                event.event_date,
+                event.event_time,
+                event.event_end_time
+              )}
             </p>
+            {event.location && (
+              <p className="text-xs text-muted-foreground mt-1">
+                <LinkifiedText text={event.location} />
+              </p>
+            )}
             {event.memo && (
-              <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{event.memo}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                <LinkifiedText text={event.memo} />
+              </p>
             )}
           </div>
           <div className="flex gap-1 shrink-0">
@@ -241,6 +253,7 @@ function GeneralEventForm({
       type: form.get("type") as GeneralEventType,
       event_date: parseOptionalDateFromForm(form),
       event_time: parseEventTimeFromForm(form),
+      event_end_time: parseEventEndTimeFromForm(form),
       location: (form.get("location") as string) || null,
       memo: (form.get("memo") as string) || null,
     };
@@ -275,9 +288,18 @@ function GeneralEventForm({
           <OptionalDateField name="event_date" defaultValue={event?.event_date} />
         </Field>
       </div>
-      <Field label="開催時間">
-        <Input type="time" name="event_time" defaultValue={event?.event_time ?? ""} />
-      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="開始時間">
+          <Input type="time" name="event_time" defaultValue={event?.event_time ?? ""} />
+        </Field>
+        <Field label="終了時間">
+          <Input
+            type="time"
+            name="event_end_time"
+            defaultValue={event?.event_end_time ?? ""}
+          />
+        </Field>
+      </div>
       <Field label="タイトル *">
         <Input
           name="title"

@@ -60,7 +60,7 @@ export async function GET(request: Request) {
         .eq("user_id", subscription.user_id),
       supabase
         .from("general_events")
-        .select("id, title, type, event_date, event_time, location, memo")
+        .select("id, title, type, event_date, event_time, event_end_time, location, memo")
         .eq("user_id", subscription.user_id)
         .not("event_date", "is", null),
     ]);
@@ -104,6 +104,7 @@ export async function GET(request: Request) {
       location: g.location,
       date: g.event_date!,
       startTime: g.event_time ?? null,
+      endTime: g.event_end_time ?? null,
       url: appBaseUrl ? `${appBaseUrl}/` : null,
     })),
     ...(companyEvents ?? []).flatMap((event) =>

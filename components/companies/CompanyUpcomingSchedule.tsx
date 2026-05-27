@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
+import { LinkifiedText } from "@/components/ui/LinkifiedText";
 import { Card } from "@/components/ui/Card";
 import {
   formatDateFull,
@@ -65,8 +66,8 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
                       </span>
                     </div>
                     {item.memo && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2 whitespace-pre-wrap">
-                        {item.memo}
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        <LinkifiedText text={item.memo} />
                       </p>
                     )}
                   </div>

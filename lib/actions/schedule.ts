@@ -37,7 +37,7 @@ export async function getScheduleForDates(dates: string[]) {
       kind: "general",
       label: GENERAL_EVENT_TYPE_LABELS[event.type as GeneralEventType],
       href: "/",
-      time: event.event_time ?? null,
+      time: formatTimeRange(event.event_time, event.event_end_time) || null,
       memo: null,
     });
   }
