@@ -22,17 +22,24 @@ export default async function CalendarPage() {
   let events: CalendarEvent[] = [];
   let error: string | null = null;
   let feedToken: string | null = null;
+  let feedError: string | null = null;
 
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()?.replace(/\/$/, "");
 
   try {
-    const [companies, tasks, companyEvents, existingFeedToken] = await Promise.all([
+    const [companies, tasks, companyEvents] = await Promise.all([
       getCalendarCompanyEvents(),
       getCalendarTaskEvents(),
       getCalendarCompanyScheduleEvents(),
-      getCalendarFeedToken(),
     ]);
-    feedToken = existingFeedToken;
+    try {
+      feedToken = await getCalendarFeedToken();
+    } catch (feedTokenError) {
+      feedError =
+        feedTokenError instanceof Error
+          ? feedTokenError.message
+          : "購読URLの取得に失敗しました";
+    }
 
     events = [
       ...companies.map((c) => ({
@@ -90,6 +97,8 @@ export default async function CalendarPage() {
             <p className="text-xs text-red-600">
               NEXT_PUBLIC_APP_URL が未設定のため購読URLを表示できません。
             </p>
+          ) : feedError ? (
+            <p className="text-xs text-red-600">{feedError}</p>
           ) : feedToken ? (
             <div className="space-y-2">
               <CopyableInput
