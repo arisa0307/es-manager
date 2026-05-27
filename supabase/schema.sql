@@ -93,12 +93,20 @@ create table if not exists es_templates (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists calendar_subscriptions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  token text not null unique,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists idx_companies_user_id on companies(user_id);
 create index if not exists idx_tasks_user_id on tasks(user_id);
 create index if not exists idx_es_user_id on es(user_id);
 create index if not exists idx_es_templates_user_id on es_templates(user_id);
 create index if not exists idx_company_events_user_id on company_events(user_id);
 create index if not exists idx_general_events_user_id on general_events(user_id);
+create index if not exists idx_calendar_subscriptions_token on calendar_subscriptions(token);
 
 create index if not exists idx_es_company_id on es(company_id);
 create index if not exists idx_tasks_company_id on tasks(company_id);
@@ -142,12 +150,17 @@ drop trigger if exists es_templates_updated_at on es_templates;
 create trigger es_templates_updated_at before update on es_templates
   for each row execute function update_updated_at();
 
+drop trigger if exists calendar_subscriptions_updated_at on calendar_subscriptions;
+create trigger calendar_subscriptions_updated_at before update on calendar_subscriptions
+  for each row execute function update_updated_at();
+
 alter table companies enable row level security;
 alter table es enable row level security;
 alter table tasks enable row level security;
 alter table company_events enable row level security;
 alter table general_events enable row level security;
 alter table es_templates enable row level security;
+alter table calendar_subscriptions enable row level security;
 
 create policy "Users select own companies" on companies for select using (auth.uid() = user_id);
 create policy "Users insert own companies" on companies for insert with check (auth.uid() = user_id);
@@ -178,3 +191,8 @@ create policy "Users select own es_templates" on es_templates for select using (
 create policy "Users insert own es_templates" on es_templates for insert with check (auth.uid() = user_id);
 create policy "Users update own es_templates" on es_templates for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users delete own es_templates" on es_templates for delete using (auth.uid() = user_id);
+
+create policy "Users select own calendar_subscriptions" on calendar_subscriptions for select using (auth.uid() = user_id);
+create policy "Users insert own calendar_subscriptions" on calendar_subscriptions for insert with check (auth.uid() = user_id);
+create policy "Users update own calendar_subscriptions" on calendar_subscriptions for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users delete own calendar_subscriptions" on calendar_subscriptions for delete using (auth.uid() = user_id);

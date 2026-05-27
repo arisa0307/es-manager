@@ -18,10 +18,13 @@ import {
 } from "@/types";
 
 export function parseCompanyFormData(form: FormData) {
+  const rawCompanyUrl = (form.get("url") as string) ?? "";
+  const companyUrl = rawCompanyUrl.trim() || null;
+
   return {
     name: form.get("name") as string,
     industry: (form.get("industry") as string) || null,
-    url: (form.get("url") as string) || null,
+    url: companyUrl,
     desired_level: (form.get("desired_level") as DesiredLevel) || null,
     status: form.get("status") as CompanyStatus,
     result: (form.get("result") as string) || null,
@@ -87,12 +90,24 @@ export function CompanyFormFields({
           </Field>
         </div>
         <Field label="URL">
-          <Input
-            name="url"
-            type="url"
-            defaultValue={company?.url ?? ""}
-            placeholder="https://"
-          />
+          <div className="space-y-1.5">
+            <Input
+              name="url"
+              type="url"
+              defaultValue={company?.url ?? ""}
+              placeholder="https://"
+            />
+            {company?.url && (
+              <a
+                href={company.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block text-xs text-muted-foreground hover:underline break-all"
+              >
+                {company.url}
+              </a>
+            )}
+          </div>
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="ステータス">
