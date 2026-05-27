@@ -17,7 +17,11 @@ export async function getCalendarFeedToken() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (isMissingCalendarSubscriptionsTable(error)) return null;
+  if (isMissingCalendarSubscriptionsTable(error)) {
+    throw new Error(
+      "カレンダー購読の設定テーブルがありません。Supabaseで migration.sql を実行してください。"
+    );
+  }
   if (error) throw new Error(error.message);
   return data?.token ?? null;
 }
@@ -34,12 +38,10 @@ export async function createCalendarFeedSubscription() {
     { onConflict: "user_id" }
   );
 
-  if (isMissingCalendarSubscriptionsTable(error)) {
-    throw new Error(
-      "カレンダー購読の設定テーブルがありません。Supabaseで migration.sql を実行してください。"
-    );
+  if (error) {
+    console.error("createCalendarFeedSubscription failed", error);
+    return;
   }
-  if (error) throw new Error(error.message);
   revalidatePath("/calendar");
 }
 
@@ -52,12 +54,10 @@ export async function rotateCalendarFeedSubscription() {
     .update({ token })
     .eq("user_id", user.id);
 
-  if (isMissingCalendarSubscriptionsTable(error)) {
-    throw new Error(
-      "カレンダー購読の設定テーブルがありません。Supabaseで migration.sql を実行してください。"
-    );
+  if (error) {
+    console.error("rotateCalendarFeedSubscription failed", error);
+    return;
   }
-  if (error) throw new Error(error.message);
   revalidatePath("/calendar");
 }
 
