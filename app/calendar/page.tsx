@@ -6,6 +6,7 @@ import {
   getCalendarFeedToken,
   rotateCalendarFeedSubscription,
 } from "@/lib/actions/calendar-feed";
+import { getCalendarGeneralEvents } from "@/lib/actions/general-events";
 import { getCalendarTaskEvents } from "@/lib/actions/tasks";
 import { buildCompanyEventScheduleEntries } from "@/lib/company-event-utils";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -27,10 +28,11 @@ export default async function CalendarPage() {
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()?.replace(/\/$/, "");
 
   try {
-    const [companies, tasks, companyEvents] = await Promise.all([
+    const [companies, tasks, companyEvents, generalEvents] = await Promise.all([
       getCalendarCompanyEvents(),
       getCalendarTaskEvents(),
       getCalendarCompanyScheduleEvents(),
+      getCalendarGeneralEvents(),
     ]);
     try {
       feedToken = await getCalendarFeedToken();
@@ -79,6 +81,16 @@ export default async function CalendarPage() {
           };
         })
       ),
+      ...generalEvents.map((event) => {
+        const timeLabel = formatTimeRange(event.event_time, event.event_end_time);
+        return {
+          id: `g-${event.id}`,
+          date: event.event_date,
+          title: [event.title, timeLabel && `(${timeLabel})`].filter(Boolean).join(" "),
+          type: event.type as CalendarEvent["type"],
+          href: "/",
+        };
+      }),
     ];
   } catch (e) {
     error = e instanceof Error ? e.message : "取得に失敗しました";
@@ -86,7 +98,10 @@ export default async function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="カレンダー" description="企業締切・タスク・面接/インターン" />
+      <PageHeader
+        title="カレンダー"
+        description="一般予定・企業締切・タスク・面接/インターン"
+      />
       {error ? (
         <Card className="border-red-500/30 bg-red-500/5">
           <p className="text-sm text-red-600">{error}</p>
