@@ -8,6 +8,8 @@ type IcsEvent = {
   date: string;
   startTime?: string | null;
   endTime?: string | null;
+  /** 締切など、時刻なしで当日いっぱいの終日イベント */
+  allDay?: boolean;
   url?: string | null;
   dtStamp?: Date;
 };
@@ -18,8 +20,11 @@ function formatDateToIcs(value: string) {
 
 function addDaysToIcsDate(date: string, days: number) {
   const [y, m, d] = date.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d + days));
-  return dt.toISOString().slice(0, 10).replaceAll("-", "");
+  const dt = new Date(y, m - 1, d + days);
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, "0");
+  const day = String(dt.getDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
 }
 
 function parseTimeToMinutes(time: string) {
@@ -108,8 +113,11 @@ function buildEventLines(event: IcsEvent) {
   lines.push(`UID:${escapeText(event.uid)}`);
   lines.push(`DTSTAMP:${stamp}`);
 
+  const useAllDay = event.allDay || !event.startTime;
   const timedRange =
-    event.startTime && resolveTimedRange(event.date, event.startTime, event.endTime);
+    !useAllDay && event.startTime
+      ? resolveTimedRange(event.date, event.startTime, event.endTime)
+      : null;
 
   if (timedRange) {
     lines.push(`DTSTART;TZID=${CALENDAR_TIMEZONE}:${timedRange.start}`);
