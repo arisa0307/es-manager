@@ -84,6 +84,7 @@ export async function GET(request: Request) {
       uid: `company-deadline-${c.id}`,
       title: `企業締切: ${c.name}`,
       date: c.deadline!,
+      allDay: true,
       url: appBaseUrl ? `${appBaseUrl}/companies/${c.id}` : null,
     })),
     ...(tasks ?? []).map((t) => ({
@@ -91,6 +92,7 @@ export async function GET(request: Request) {
       title: `タスク: ${t.title}`,
       description: t.company_id ? `企業: ${byCompanyId.get(t.company_id) ?? "未設定"}` : null,
       date: t.deadline!,
+      allDay: true,
       url: appBaseUrl
         ? t.company_id
           ? `${appBaseUrl}/companies/${t.company_id}`
