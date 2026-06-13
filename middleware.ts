@@ -3,10 +3,12 @@ import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isTokenAuthenticatedApi =
-    pathname === "/api/calendar.ics" || pathname === "/api/events";
+  const isPublicRoute =
+    pathname === "/api/calendar.ics" ||
+    pathname === "/api/events" ||
+    pathname === "/inbox-triage";
 
-  if (isTokenAuthenticatedApi) {
+  if (isPublicRoute) {
     return NextResponse.next();
   }
 
