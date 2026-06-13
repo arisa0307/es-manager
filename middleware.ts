@@ -3,9 +3,10 @@ import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isCalendarFeedApi = pathname === "/api/calendar.ics";
+  const isTokenAuthenticatedApi =
+    pathname === "/api/calendar.ics" || pathname === "/api/events";
 
-  if (isCalendarFeedApi) {
+  if (isTokenAuthenticatedApi) {
     return NextResponse.next();
   }
 
