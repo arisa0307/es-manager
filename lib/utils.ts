@@ -66,6 +66,8 @@ const LEVEL_COLORS: Record<DesiredLevel, string> = {
   A: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
   B: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
   C: "bg-muted text-muted-foreground",
+  ワンチャン枠: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
+  多様性: "bg-teal-500/10 text-teal-700 dark:text-teal-300",
 };
 
 export function getLevelColor(level: DesiredLevel | null): string {
@@ -83,7 +85,14 @@ export function getPriorityColor(priority: TaskPriority): string {
   return PRIORITY_COLORS[priority];
 }
 
-const LEVEL_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3 };
+const LEVEL_ORDER: Record<string, number> = {
+  S: 0,
+  A: 1,
+  B: 2,
+  C: 3,
+  ワンチャン枠: 4,
+  多様性: 5,
+};
 const STATUS_ORDER: Record<string, number> = {
   未エントリー: 0,
   マイページ登録済み: 1,

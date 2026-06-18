@@ -10,6 +10,9 @@ $$ language plpgsql;
 
 alter table companies add column if not exists url text;
 alter table companies add column if not exists desired_level text;
+alter table companies drop constraint if exists companies_desired_level_check;
+alter table companies add constraint companies_desired_level_check
+  check (desired_level in ('S', 'A', 'B', 'C', 'ワンチャン枠', '多様性'));
 alter table companies add column if not exists result text;
 alter table companies add column if not exists salary text;
 alter table companies add column if not exists next_action text;
