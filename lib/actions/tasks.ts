@@ -7,7 +7,14 @@ import type { DesiredLevel, SortOrder, TaskInsert, TaskUpdate } from "@/types";
 
 type TaskSort = "deadline" | "desired_level";
 
-const LEVEL_ORDER: Record<DesiredLevel, number> = { S: 0, A: 1, B: 2, C: 3 };
+const LEVEL_ORDER: Record<DesiredLevel, number> = {
+  S: 0,
+  A: 1,
+  B: 2,
+  C: 3,
+  ワンチャン枠: 4,
+  多様性: 5,
+};
 
 export async function getTasks(options?: {
   search?: string;

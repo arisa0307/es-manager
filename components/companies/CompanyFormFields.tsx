@@ -10,6 +10,7 @@ import {
   COMPANY_RESULTS,
   COMPANY_STATUSES,
   DESIRED_LEVELS,
+  DESIRED_LEVEL_LABELS,
   EVENT_SCHEDULE_STATUSES,
   EVENT_SCHEDULE_STATUS_LABELS,
   type Company,
@@ -84,7 +85,7 @@ export function CompanyFormFields({
               <option value="">—</option>
               {DESIRED_LEVELS.map((l) => (
                 <option key={l} value={l}>
-                  {l}
+                  {DESIRED_LEVEL_LABELS[l]}
                 </option>
               ))}
             </Select>
