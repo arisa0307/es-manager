@@ -12,8 +12,9 @@ const LEVEL_ORDER: Record<DesiredLevel, number> = {
   A: 1,
   B: 2,
   C: 3,
-  ワンチャン枠: 4,
-  多様性: 5,
+  D: 4,
+  ワンチャン枠: 5,
+  多様性: 6,
 };
 
 export async function getTasks(options?: {
