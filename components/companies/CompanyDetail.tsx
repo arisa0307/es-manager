@@ -13,6 +13,7 @@ import {
   CompanyFormFields,
   parseCompanyFormData,
 } from "./CompanyFormFields";
+import { CompanyInfoView } from "./CompanyInfoView";
 import { CompanyEventForm } from "./CompanyEventForm";
 import { CompanyUpcomingSchedule } from "./CompanyUpcomingSchedule";
 import { buildCompanyUpcomingSchedule } from "@/lib/company-schedule";
@@ -25,6 +26,9 @@ import { TaskForm } from "@/components/tasks/TaskForm";
 import {
   formatEventDateTime,
   getPriorityColor,
+  getStatusColor,
+  getLevelColor,
+  getResultColor,
   formatDate,
   isOverdue,
   countWords,
@@ -57,6 +61,7 @@ export function CompanyDetail({
   const [showES, setShowES] = useState(false);
   const [showTask, setShowTask] = useState(false);
   const [showEvent, setShowEvent] = useState(false);
+  const [editingInfo, setEditingInfo] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
@@ -70,6 +75,7 @@ export function CompanyDetail({
       try {
         setSaveError(null);
         await updateCompany(company.id, data);
+        setEditingInfo(false);
         router.refresh();
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : "エラーが発生しました");
@@ -104,19 +110,37 @@ export function CompanyDetail({
             削除
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge className="bg-muted text-muted-foreground">{company.industry ?? "業界未設定"}</Badge>
-          {company.status && (
-            <Badge className="bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
-              {company.status}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge className={getStatusColor(company.status)}>{company.status}</Badge>
+          {company.desired_level && (
+            <Badge className={getLevelColor(company.desired_level)}>
+              志望度 {company.desired_level}
             </Badge>
           )}
-          {company.next_action && (
-            <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-300">
-              次: {company.next_action}
-            </Badge>
+          {company.result && (
+            <Badge className={getResultColor(company.result)}>{company.result}</Badge>
+          )}
+          <Badge className="bg-muted text-muted-foreground">
+            {company.industry ?? "業界未設定"}
+          </Badge>
+          {company.deadline && (
+            <span
+              className={`text-xs ${isOverdue(company.deadline, false) ? "text-red-600 font-medium" : "text-muted-foreground"}`}
+            >
+              締切 {formatDate(company.deadline)}
+            </span>
           )}
         </div>
+        {company.next_action && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+            <span className="mt-0.5 shrink-0 text-xs font-medium text-amber-600 dark:text-amber-400">
+              次のアクション
+            </span>
+            <span className="text-sm text-foreground">
+              <LinkifiedText text={company.next_action} />
+            </span>
+          </div>
+        )}
       </Card>
 
       <CompanyUpcomingSchedule items={upcomingItems} />
@@ -273,22 +297,52 @@ export function CompanyDetail({
       </Card>
 
       <Card>
-        <SectionHeader title="企業情報" />
-        <form
-          key={`${company.id}-${company.updated_at}`}
-          onSubmit={handleSaveCompany}
-          className="space-y-3"
-        >
-          {saveError && (
-            <p className="text-sm text-red-600 bg-red-500/10 rounded-md px-3 py-2">
-              {saveError}
-            </p>
-          )}
-          <CompanyFormFields company={company} />
-          <Button type="submit" disabled={isSaving}>
-            {isSaving ? "保存中..." : "変更を保存"}
-          </Button>
-        </form>
+        <SectionHeader
+          title="企業情報"
+          action={
+            !editingInfo && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setEditingInfo(true)}
+              >
+                編集
+              </Button>
+            )
+          }
+        />
+        {editingInfo ? (
+          <form
+            key={`${company.id}-${company.updated_at}`}
+            onSubmit={handleSaveCompany}
+            className="space-y-3"
+          >
+            {saveError && (
+              <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-600">
+                {saveError}
+              </p>
+            )}
+            <CompanyFormFields company={company} />
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? "保存中..." : "変更を保存"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setSaveError(null);
+                  setEditingInfo(false);
+                }}
+                disabled={isSaving}
+              >
+                キャンセル
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <CompanyInfoView company={company} />
+        )}
       </Card>
 
       <Link href="/companies" className="text-sm text-muted-foreground hover:underline">

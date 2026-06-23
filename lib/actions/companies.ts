@@ -16,6 +16,7 @@ export async function getCompanies(options?: {
   search?: string;
   status?: string;
   desiredLevel?: string;
+  result?: string;
   sort?: CompanySortField;
   order?: SortOrder;
 }) {
@@ -30,6 +31,7 @@ export async function getCompanies(options?: {
   if (options?.status) query = query.eq("status", options.status);
   if (options?.desiredLevel)
     query = query.eq("desired_level", options.desiredLevel);
+  if (options?.result) query = query.eq("result", options.result);
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
@@ -89,24 +91,6 @@ export async function deleteCompany(id: string) {
   revalidatePath("/");
   revalidatePath("/companies");
   revalidatePath("/calendar");
-}
-
-export async function getCompanyStats() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("companies")
-    .select("status, desired_level");
-  if (error) throw new Error(error.message);
-
-  const byStatus: Record<string, number> = {};
-  const byLevel: Record<string, number> = {};
-  for (const row of data ?? []) {
-    byStatus[row.status] = (byStatus[row.status] ?? 0) + 1;
-    if (row.desired_level) {
-      byLevel[row.desired_level] = (byLevel[row.desired_level] ?? 0) + 1;
-    }
-  }
-  return { total: data?.length ?? 0, byStatus, byLevel };
 }
 
 export async function getCalendarCompanyEvents() {

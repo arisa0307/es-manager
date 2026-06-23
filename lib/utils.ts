@@ -1,4 +1,6 @@
+import { COMPANY_STATUSES, DESIRED_LEVELS } from "@/types";
 import type {
+  CompanyResult,
   CompanyStatus,
   DesiredLevel,
   TaskPriority,
@@ -53,12 +55,34 @@ const STATUS_COLORS: Record<CompanyStatus, string> = {
   ES: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
   Webテスト: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
   面接: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  内定: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  落選: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
 export function getStatusColor(status: CompanyStatus): string {
   return STATUS_COLORS[status] ?? "bg-muted text-muted-foreground";
+}
+
+const RESULT_COLORS: Record<string, string> = {
+  進行中: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  内定: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  落選: "bg-red-500/10 text-red-600 dark:text-red-400",
+  辞退: "bg-muted text-muted-foreground",
+};
+
+export function getResultColor(result: CompanyResult | string | null): string {
+  if (!result) return "bg-muted text-muted-foreground";
+  return RESULT_COLORS[result] ?? "bg-muted text-muted-foreground";
+}
+
+/**
+ * 「持ち駒」(まだ選考が生きている企業)の判定。
+ * 結果が確定(内定/落選/辞退)しておらず、エントリー済みのものを指す。
+ */
+export function isActiveCompany(c: {
+  status: CompanyStatus;
+  result: string | null;
+}): boolean {
+  const finished = c.result === "内定" || c.result === "落選" || c.result === "辞退";
+  return !finished && c.status !== "未エントリー";
 }
 
 const LEVEL_COLORS: Record<DesiredLevel, string> = {
@@ -86,24 +110,15 @@ export function getPriorityColor(priority: TaskPriority): string {
   return PRIORITY_COLORS[priority];
 }
 
-const LEVEL_ORDER: Record<string, number> = {
-  S: 0,
-  A: 1,
-  B: 2,
-  C: 3,
-  D: 4,
-  ワンチャン枠: 5,
-  多様性: 6,
-};
-const STATUS_ORDER: Record<string, number> = {
-  未エントリー: 0,
-  マイページ登録済み: 1,
-  ES: 2,
-  Webテスト: 3,
-  面接: 4,
-  内定: 5,
-  落選: 6,
-};
+// 志望度の並び順は DESIRED_LEVELS の定義順を唯一の情報源として導出する。
+// ランクを追加・並べ替えるときは types/index.ts の DESIRED_LEVELS だけ直せばよい。
+export const LEVEL_ORDER: Record<DesiredLevel, number> = Object.fromEntries(
+  DESIRED_LEVELS.map((level, index) => [level, index])
+) as Record<DesiredLevel, number>;
+// ステータスの並び順も COMPANY_STATUSES の定義順から導出する(単一情報源)。
+const STATUS_ORDER: Record<string, number> = Object.fromEntries(
+  COMPANY_STATUSES.map((status, index) => [status, index])
+);
 
 export function sortCompanies<T extends {
   name: string;

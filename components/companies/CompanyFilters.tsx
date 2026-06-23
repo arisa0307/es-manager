@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { COMPANY_STATUSES, DESIRED_LEVELS } from "@/types";
+import { useDebouncedCallback } from "@/lib/use-debounced-callback";
+import { COMPANY_RESULTS, COMPANY_STATUSES, DESIRED_LEVELS } from "@/types";
 
 export function CompanyFilters() {
   const router = useRouter();
@@ -25,14 +26,19 @@ export function CompanyFilters() {
     [router, searchParams]
   );
 
+  const debouncedSearch = useDebouncedCallback(
+    (value: string) => update({ q: value }),
+    300
+  );
+
   return (
     <div
-      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 mb-4 ${isPending ? "opacity-60" : ""}`}
+      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 mb-4 ${isPending ? "opacity-60" : ""}`}
     >
       <Input
         placeholder="企業名・業界で検索"
         defaultValue={searchParams.get("q") ?? ""}
-        onChange={(e) => update({ q: e.target.value })}
+        onChange={(e) => debouncedSearch(e.target.value)}
         className="sm:col-span-2"
       />
       <Select
@@ -54,6 +60,17 @@ export function CompanyFilters() {
         {DESIRED_LEVELS.map((l) => (
           <option key={l} value={l}>
             {l}
+          </option>
+        ))}
+      </Select>
+      <Select
+        value={searchParams.get("result") ?? ""}
+        onChange={(e) => update({ result: e.target.value })}
+      >
+        <option value="">結果</option>
+        {COMPANY_RESULTS.filter((r) => r).map((r) => (
+          <option key={r} value={r}>
+            {r}
           </option>
         ))}
       </Select>

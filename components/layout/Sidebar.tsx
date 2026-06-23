@@ -43,13 +43,18 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                    "relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                     active
-                      ? "bg-muted text-foreground font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-muted font-medium text-foreground before:absolute before:left-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-accent"
+                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                   )}
                 >
-                  <span className="text-xs opacity-50 w-4 text-center">
+                  <span
+                    className={cn(
+                      "w-4 text-center text-xs",
+                      active ? "text-accent opacity-100" : "opacity-50"
+                    )}
+                  >
                     {item.icon}
                   </span>
                   {item.label}
@@ -89,13 +94,15 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-2 py-1 rounded-md text-[9px] shrink-0",
+                  "flex shrink-0 flex-col items-center gap-0.5 rounded-md px-2 py-1 text-[9px] transition-colors",
                   active
-                    ? "text-foreground font-medium"
+                    ? "font-medium text-foreground"
                     : "text-muted-foreground"
                 )}
               >
-                <span className="text-sm">{item.icon}</span>
+                <span className={cn("text-sm", active && "text-accent")}>
+                  {item.icon}
+                </span>
                 {item.label}
               </Link>
             );

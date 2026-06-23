@@ -23,17 +23,6 @@ export async function getTemplates(search?: string) {
   return data;
 }
 
-export async function getTemplate(id: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("es_templates")
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (error) throw new Error(error.message);
-  return data;
-}
-
 export async function createTemplate(input: ESTemplateInsert) {
   const { supabase, user } = await getAuthedClient();
   const { data, error } = await supabase

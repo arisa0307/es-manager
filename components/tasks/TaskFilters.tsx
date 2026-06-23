@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS } from "@/types";
 
 export function TaskFilters() {
@@ -21,9 +22,14 @@ export function TaskFilters() {
     [router, searchParams]
   );
 
+  const debouncedSearch = useDebouncedCallback(
+    (value: string) => update("q", value),
+    300
+  );
+
   return (
     <div className={`flex flex-col sm:flex-row gap-2 mb-4 ${isPending ? "opacity-60" : ""}`}>
-      <Input placeholder="検索" defaultValue={searchParams.get("q") ?? ""} onChange={(e) => update("q", e.target.value)} className="sm:flex-1" />
+      <Input placeholder="検索" defaultValue={searchParams.get("q") ?? ""} onChange={(e) => debouncedSearch(e.target.value)} className="sm:flex-1" />
       <Select value={searchParams.get("priority") ?? ""} onChange={(e) => update("priority", e.target.value)} className="sm:w-28">
         <option value="">優先度</option>
         {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>)}

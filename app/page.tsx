@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { claimOrphanedUserData } from "@/lib/actions/claim-orphan-data";
-import { getCompanyStats, getCompanies } from "@/lib/actions/companies";
+import { getCompanies } from "@/lib/actions/companies";
 import { getGeneralEvents } from "@/lib/actions/general-events";
 import { getScheduleForDates } from "@/lib/actions/schedule";
 import { getTaskStats, getTasks } from "@/lib/actions/tasks";
@@ -9,14 +9,19 @@ import { TodayTomorrowSchedule } from "@/components/dashboard/TodayTomorrowSched
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getStatusColor, getLevelColor, formatDate, getTodayString, addDaysToDateString } from "@/lib/utils";
-import { COMPANY_STATUSES, DESIRED_LEVELS, type CompanyStatus, type DesiredLevel, type ScheduleItem } from "@/types";
+import { getStatusColor, getLevelColor, getResultColor, isActiveCompany, formatDate, getTodayString, addDaysToDateString } from "@/lib/utils";
+import { COMPANY_RESULTS, COMPANY_STATUSES, DESIRED_LEVELS, type CompanyStatus, type DesiredLevel, type ScheduleItem } from "@/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   let error: string | null = null;
-  let companyStats = { total: 0, byStatus: {} as Record<string, number>, byLevel: {} as Record<string, number> };
+  let companyStats = {
+    total: 0,
+    byStatus: {} as Record<string, number>,
+    byLevel: {} as Record<string, number>,
+    byResult: {} as Record<string, number>,
+  };
   let taskStats = { pending: 0, completed: 0, overdue: 0, total: 0 };
   let companies: Awaited<ReturnType<typeof getCompanies>> = [];
   let activeCompanies: Awaited<ReturnType<typeof getCompanies>> = [];
@@ -34,20 +39,31 @@ export default async function DashboardPage() {
 
   try {
     await claimOrphanedUserData();
-    [companyStats, taskStats, companies, tasks, generalEvents, todayItems, tomorrowItems] =
+    let scheduleItems: ScheduleItem[] = [];
+    [taskStats, companies, tasks, generalEvents, scheduleItems] =
       await Promise.all([
-      getCompanyStats(),
       getTaskStats(),
       getCompanies({ sort: "deadline", order: "asc" }),
       getTasks({ isDone: false }),
       getGeneralEvents(),
-      getScheduleForDates([today]),
-      getScheduleForDates([tomorrow]),
+      getScheduleForDates([today, tomorrow]),
     ]);
-    activeCompanies = companies
-      .filter((c) =>
-        ["マイページ登録済み", "ES", "Webテスト", "面接"].includes(c.status)
-      );
+    // 既に全企業を取得しているので、別クエリを投げず取得済みデータから集計する。
+    companyStats = { total: companies.length, byStatus: {}, byLevel: {}, byResult: {} };
+    for (const c of companies) {
+      companyStats.byStatus[c.status] = (companyStats.byStatus[c.status] ?? 0) + 1;
+      if (c.desired_level) {
+        companyStats.byLevel[c.desired_level] =
+          (companyStats.byLevel[c.desired_level] ?? 0) + 1;
+      }
+      if (c.result) {
+        companyStats.byResult[c.result] = (companyStats.byResult[c.result] ?? 0) + 1;
+      }
+    }
+    // 1回の取得結果を日付で振り分ける（today/tomorrow で2回叩かない）。
+    todayItems = scheduleItems.filter((i) => i.date === today);
+    tomorrowItems = scheduleItems.filter((i) => i.date === tomorrow);
+    activeCompanies = companies.filter(isActiveCompany);
     activeCompaniesCount = activeCompanies.length;
     activeCompanies = activeCompanies.slice(0, 6);
     nearestTaskByCompany = new Map();
@@ -125,6 +141,29 @@ export default async function DashboardPage() {
                   </div>
                 );
               })}
+            </div>
+          </Card>
+        </section>
+
+        <section>
+          <SectionLink href="/companies" label="結果別" />
+          <Card>
+            <div className="space-y-2">
+              {COMPANY_RESULTS.filter((r) => r).map((r) => {
+                const n = companyStats.byResult[r] ?? 0;
+                if (!n) return null;
+                return (
+                  <div key={r} className="flex justify-between text-sm">
+                    <Badge className={getResultColor(r)}>{r}</Badge>
+                    <span>{n}</span>
+                  </div>
+                );
+              })}
+              {Object.keys(companyStats.byResult).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  結果未設定
+                </p>
+              )}
             </div>
           </Card>
         </section>

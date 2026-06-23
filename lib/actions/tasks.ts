@@ -3,19 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
+import { LEVEL_ORDER } from "@/lib/utils";
 import type { DesiredLevel, SortOrder, TaskInsert, TaskUpdate } from "@/types";
 
 type TaskSort = "deadline" | "desired_level";
-
-const LEVEL_ORDER: Record<DesiredLevel, number> = {
-  S: 0,
-  A: 1,
-  B: 2,
-  C: 3,
-  D: 4,
-  ワンチャン枠: 5,
-  多様性: 6,
-};
 
 export async function getTasks(options?: {
   search?: string;

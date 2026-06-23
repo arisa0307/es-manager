@@ -13,6 +13,7 @@ type Props = {
     q?: string;
     status?: string;
     level?: string;
+    result?: string;
     sort?: string;
     order?: string;
   }>;
@@ -28,6 +29,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       search: params.q,
       status: params.status,
       desiredLevel: params.level,
+      result: params.result,
       sort: (params.sort as CompanySortField) ?? "updated_at",
       order: (params.order as SortOrder) ?? "desc",
     });

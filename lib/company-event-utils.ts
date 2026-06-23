@@ -108,16 +108,6 @@ export function getCompanyEventStatusText(
   return EVENT_SCHEDULE_STATUS_LABELS[entry.scheduleStatus];
 }
 
-export function parseCandidateSlotsFromJson(value: string | null | undefined) {
-  if (!value) return [];
-
-  try {
-    return normalizeCandidateSlots(JSON.parse(value));
-  } catch {
-    return [];
-  }
-}
-
 function toTimeRangeMinutes(startTime: string | null, endTime: string | null) {
   if (!startTime) return null;
   const start = parseTimeToMinutes(startTime);
