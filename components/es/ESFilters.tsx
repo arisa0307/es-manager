@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import type { Company } from "@/types";
 
 export function ESFilters({
@@ -25,12 +26,17 @@ export function ESFilters({
     [router, searchParams]
   );
 
+  const debouncedSearch = useDebouncedCallback(
+    (value: string) => update("q", value),
+    300
+  );
+
   return (
     <div className={`flex flex-col sm:flex-row gap-2 mb-4 ${isPending ? "opacity-60" : ""}`}>
       <Input
         placeholder="設問・回答で検索"
         defaultValue={searchParams.get("q") ?? ""}
-        onChange={(e) => update("q", e.target.value)}
+        onChange={(e) => debouncedSearch(e.target.value)}
         className="sm:flex-1"
       />
       <Select

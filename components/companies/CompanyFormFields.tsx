@@ -123,6 +123,9 @@ export function CompanyFormFields({
             </Select>
           </Field>
         </div>
+        <p className="text-xs text-muted-foreground">
+          ステータス=いま選考のどの段階か / 選考結果=最終的にどうなったか(内定・落選・辞退)。内定したらステータスはそのまま、結果に「内定」を入れます。
+        </p>
         <Field label="年収・待遇">
           <Input name="salary" defaultValue={company?.salary ?? ""} />
         </Field>
@@ -230,6 +233,7 @@ export function CompanyFormFields({
               autoComplete="off"
               defaultValue={company?.login_password ?? ""}
               placeholder="表示・コピー可能"
+              masked
             />
           </Field>
         </div>

@@ -4,17 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCompany } from "@/lib/actions/companies";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CompanyForm } from "./CompanyForm";
+import { InlineCompanySelect } from "./InlineCompanySelect";
 import {
   formatDate,
   getStatusColor,
   getLevelColor,
   isOverdue,
 } from "@/lib/utils";
+import { COMPANY_STATUSES, DESIRED_LEVELS } from "@/types";
 import type { Company, CompanyStatus, DesiredLevel } from "@/types";
 
 export function CompanyTable({ companies }: { companies: Company[] }) {
@@ -101,18 +102,23 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
                   {c.industry ?? "—"}
                 </td>
                 <td className="px-3 py-2.5">
-                  {c.desired_level ? (
-                    <Badge className={getLevelColor(c.desired_level as DesiredLevel)}>
-                      {c.desired_level}
-                    </Badge>
-                  ) : (
-                    "—"
-                  )}
+                  <InlineCompanySelect
+                    companyId={c.id}
+                    field="desired_level"
+                    value={c.desired_level}
+                    options={DESIRED_LEVELS}
+                    colorClass={getLevelColor(c.desired_level as DesiredLevel)}
+                    allowEmpty
+                  />
                 </td>
                 <td className="px-3 py-2.5">
-                  <Badge className={getStatusColor(c.status as CompanyStatus)}>
-                    {c.status}
-                  </Badge>
+                  <InlineCompanySelect
+                    companyId={c.id}
+                    field="status"
+                    value={c.status}
+                    options={COMPANY_STATUSES}
+                    colorClass={getStatusColor(c.status as CompanyStatus)}
+                  />
                 </td>
                 <td
                   className={`px-3 py-2.5 ${isOverdue(c.deadline, false) ? "text-red-600 font-medium" : "text-muted-foreground"}`}
@@ -143,31 +149,40 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
       <div className={`md:hidden space-y-2 ${isPending ? "opacity-60" : ""}`}>
         {companies.map((c) => (
           <Card key={c.id} hover>
-            <Link href={`/companies/${c.id}`} prefetch={false} className="block">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium text-foreground">{c.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {c.industry ?? "—"}
-                  </p>
-                </div>
-                {c.desired_level && (
-                  <Badge className={getLevelColor(c.desired_level as DesiredLevel)}>
-                    {c.desired_level}
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className={getStatusColor(c.status as CompanyStatus)}>
-                  {c.status}
-                </Badge>
-                <span
-                  className={`text-xs ${isOverdue(c.deadline, false) ? "text-red-600" : "text-muted-foreground"}`}
-                >
-                  締切 {formatDate(c.deadline)}
-                </span>
-              </div>
-            </Link>
+            <div className="flex items-start justify-between gap-2">
+              <Link
+                href={`/companies/${c.id}`}
+                prefetch={false}
+                className="min-w-0 block"
+              >
+                <p className="font-medium text-foreground">{c.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {c.industry ?? "—"}
+                </p>
+              </Link>
+              <InlineCompanySelect
+                companyId={c.id}
+                field="desired_level"
+                value={c.desired_level}
+                options={DESIRED_LEVELS}
+                colorClass={getLevelColor(c.desired_level as DesiredLevel)}
+                allowEmpty
+              />
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <InlineCompanySelect
+                companyId={c.id}
+                field="status"
+                value={c.status}
+                options={COMPANY_STATUSES}
+                colorClass={getStatusColor(c.status as CompanyStatus)}
+              />
+              <span
+                className={`text-xs ${isOverdue(c.deadline, false) ? "text-red-600" : "text-muted-foreground"}`}
+              >
+                締切 {formatDate(c.deadline)}
+              </span>
+            </div>
             <div className="flex gap-1 mt-2 pt-2 border-t border-border">
               <Button variant="ghost" size="sm" onClick={() => setEditing(c)}>
                 編集

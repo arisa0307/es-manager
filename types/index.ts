@@ -1,16 +1,18 @@
-/** 選考ステータス: 未エントリー → マイページ登録済み → ES → Webテスト → 面接 → 内定/落選 */
+/**
+ * 選考ステータス = 選考プロセスの「段階」: 未エントリー → マイページ登録済み → ES → Webテスト → 面接
+ * 内定/落選/辞退などの「結末」は status ではなく COMPANY_RESULTS で持つ(役割を分離)。
+ */
 export const COMPANY_STATUSES = [
   "未エントリー",
   "マイページ登録済み",
   "ES",
   "Webテスト",
   "面接",
-  "内定",
-  "落選",
 ] as const;
 export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
 
-export const COMPANY_RESULTS = ["", "内定", "落選", "辞退", "進行中"] as const;
+/** 選考結果 = 最終的な「結末」。進行中かどうかと、内定/落選/辞退を表す。 */
+export const COMPANY_RESULTS = ["", "進行中", "内定", "落選", "辞退"] as const;
 export type CompanyResult = (typeof COMPANY_RESULTS)[number];
 
 export const DESIRED_LEVELS = ["S", "A", "B", "C", "D", "ワンチャン枠", "多様性"] as const;
