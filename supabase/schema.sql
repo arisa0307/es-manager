@@ -7,7 +7,7 @@ create table if not exists companies (
   name text not null,
   industry text,
   url text,
-  desired_level text check (desired_level in ('S', 'A', 'B', 'C', 'ワンチャン枠', '多様性')),
+  desired_level text check (desired_level in ('S', 'A', 'B', 'C', 'D', 'ワンチャン枠', '多様性')),
   status text not null default '未エントリー',
   result text,
   salary text,
