@@ -29,6 +29,7 @@ export function buildCompanyUpcomingSchedule(
       kind: "company_deadline",
       label: "企業締切",
       href,
+      deleteId: company.id,
     });
   }
 
@@ -46,6 +47,7 @@ export function buildCompanyUpcomingSchedule(
         href: `#company-events`,
         time: formatTimeRange(entry.startTime, entry.endTime) || null,
         memo: event.memo,
+        deleteId: event.id,
       });
     }
   }
@@ -60,6 +62,7 @@ export function buildCompanyUpcomingSchedule(
       label: "タスク",
       href: `#company-tasks`,
       memo: task.memo,
+      deleteId: task.id,
     });
   }
 

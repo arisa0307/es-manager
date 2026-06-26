@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCompany, updateCompany } from "@/lib/actions/companies";
 import { deleteCompanyEvent } from "@/lib/actions/company-events";
+import { deleteTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge } from "@/components/ui/Badge";
 import { LinkifiedText } from "@/components/ui/LinkifiedText";
 import { Button } from "@/components/ui/Button";
@@ -62,6 +63,7 @@ export function CompanyDetail({
   const [showTask, setShowTask] = useState(false);
   const [showEvent, setShowEvent] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
@@ -94,6 +96,11 @@ export function CompanyDetail({
   const handleDeleteEvent = (id: string) => {
     if (!confirm("この日程を削除しますか？")) return;
     startTransition(() => deleteCompanyEvent(id));
+  };
+
+  const handleDeleteTask = (id: string, title: string) => {
+    if (!confirm(`タスク「${title}」を削除しますか？`)) return;
+    startTransition(() => deleteTask(id));
   };
 
   return (
@@ -147,13 +154,16 @@ export function CompanyDetail({
 
       <Card id="company-events">
         <SectionHeader
-          title="インターン・面接日程"
+          title="予定・日程"
           action={
             <Button size="sm" onClick={() => setShowEvent(!showEvent)}>
               {showEvent ? "閉じる" : "+ 追加"}
             </Button>
           }
         />
+        <p className="-mt-2 mb-3 text-xs text-muted-foreground">
+          面接・インターン・説明会のほか、エントリー開始日など締切以外の予定も登録できます
+        </p>
         {showEvent && !editingEventId && (
           <div className="mb-4 pb-4 border-b border-border">
             <CompanyEventForm
@@ -164,7 +174,7 @@ export function CompanyDetail({
           </div>
         )}
         {events.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">日程がありません</p>
+          <p className="text-sm text-muted-foreground py-2">予定がありません</p>
         ) : (
           <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
             {events.map((event) => (
@@ -208,37 +218,92 @@ export function CompanyDetail({
         {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">タスクがありません</p>
         ) : (
-          <div className="space-y-2">
-            {tasks.map((task) => (
-              <div key={task.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={
-                      task.is_done
-                        ? "line-through text-muted-foreground text-sm"
-                        : "font-medium text-sm"
-                    }
-                  >
-                    {task.title}
-                  </span>
-                  <Badge className={getPriorityColor(task.priority as TaskPriority)}>
-                    {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
-                  </Badge>
-                  {task.deadline && (
-                    <span
-                      className={`text-xs ${isOverdue(task.deadline, task.is_done) ? "text-red-600" : "text-muted-foreground"}`}
-                    >
-                      {formatDate(task.deadline)}
-                    </span>
-                  )}
+          <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
+            {tasks.map((task) =>
+              editingTaskId === task.id ? (
+                <div
+                  key={task.id}
+                  className="rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+                >
+                  <TaskForm
+                    companies={[{ id: company.id, name: company.name }]}
+                    defaultCompanyId={company.id}
+                    task={task}
+                    onSuccess={() => setEditingTaskId(null)}
+                    onCancel={() => setEditingTaskId(null)}
+                  />
                 </div>
-                {task.memo && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <LinkifiedText text={task.memo} />
-                  </p>
-                )}
-              </div>
-            ))}
+              ) : (
+                <div
+                  key={task.id}
+                  className="rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={task.is_done}
+                      onChange={() =>
+                        startTransition(() =>
+                          toggleTaskDone(task.id, !task.is_done)
+                        )
+                      }
+                      className="mt-1 h-4 w-4 rounded border-border"
+                      aria-label="完了/未完了"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={
+                            task.is_done
+                              ? "line-through text-muted-foreground text-sm"
+                              : "font-medium text-sm"
+                          }
+                        >
+                          {task.title}
+                        </span>
+                        <Badge
+                          className={getPriorityColor(task.priority as TaskPriority)}
+                        >
+                          {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
+                        </Badge>
+                        {task.deadline && (
+                          <span
+                            className={`text-xs ${isOverdue(task.deadline, task.is_done) ? "text-red-600" : "text-muted-foreground"}`}
+                          >
+                            {formatDate(task.deadline)}
+                          </span>
+                        )}
+                      </div>
+                      {task.memo && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          <LinkifiedText text={task.memo} />
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowTask(false);
+                          setEditingTaskId(task.id);
+                        }}
+                      >
+                        編集
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDeleteTask(task.id, task.title)}
+                        disabled={isPending}
+                      >
+                        削除
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
           </div>
         )}
       </Card>
