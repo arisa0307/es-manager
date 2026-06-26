@@ -247,6 +247,8 @@ export type ScheduleItem = {
   href: string;
   time?: string | null;
   memo?: string | null;
+  /** 予定一覧から削除するための元レコード参照(企業詳細のみ設定) */
+  deleteId?: string;
 };
 
 export type ESTemplateInsert = {
