@@ -85,11 +85,18 @@ export async function getCalendarTaskEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tasks")
-    .select("id, title, deadline, company_id, is_done")
+    .select("id, title, deadline, company_id, is_done, companies(name)")
     .not("deadline", "is", null)
     .eq("is_done", false);
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []) as unknown as {
+    id: string;
+    title: string;
+    deadline: string | null;
+    company_id: string | null;
+    is_done: boolean;
+    companies: { name: string } | null;
+  }[];
 }
 
 export async function createTask(input: TaskInsert) {

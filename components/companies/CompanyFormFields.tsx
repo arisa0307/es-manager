@@ -139,12 +139,12 @@ export function CompanyFormFields({
         <Field label="締切・期日">
           <OptionalDateField name="deadline" defaultValue={company?.deadline} />
         </Field>
-        <Field label="次のアクション">
+        <Field label="次のアクション（空欄なら直近の予定・タスクを自動表示）">
           <Textarea
             name="next_action"
             rows={2}
             defaultValue={company?.next_action ?? ""}
-            placeholder="次にやること"
+            placeholder="空欄でOK。特記事項があるときだけ入力"
           />
         </Field>
         <Field label="インターン名">

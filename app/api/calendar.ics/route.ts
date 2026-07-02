@@ -41,11 +41,11 @@ export async function GET(request: Request) {
 
   const [{ data: companies, error: companiesError }, { data: tasks, error: tasksError }, { data: companyEvents, error: companyEventsError }, { data: generalEvents, error: generalEventsError }] =
     await Promise.all([
+      // 企業名の解決にも使うため、締切の有無に関わらず全企業を取得する
       supabase
         .from("companies")
         .select("id, name, deadline")
-        .eq("user_id", subscription.user_id)
-        .not("deadline", "is", null),
+        .eq("user_id", subscription.user_id),
       supabase
         .from("tasks")
         .select("id, title, deadline, is_done, company_id")
@@ -79,17 +79,26 @@ export async function GET(request: Request) {
   const byCompanyId = new Map((companies ?? []).map((c) => [c.id, c.name]));
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()?.replace(/\/$/, "") ?? "";
 
+  // どの企業の予定か一目で分かるよう、タイトル先頭に【企業名】を付ける
+  const companyPrefix = (companyId: string | null | undefined) => {
+    if (!companyId) return "";
+    const name = byCompanyId.get(companyId);
+    return name ? `【${name}】` : "";
+  };
+
   const events = [
-    ...(companies ?? []).map((c) => ({
-      uid: `company-deadline-${c.id}`,
-      title: `企業締切: ${c.name}`,
-      date: c.deadline!,
-      allDay: true,
-      url: appBaseUrl ? `${appBaseUrl}/companies/${c.id}` : null,
-    })),
+    ...(companies ?? [])
+      .filter((c) => c.deadline)
+      .map((c) => ({
+        uid: `company-deadline-${c.id}`,
+        title: `【${c.name}】エントリー締切`,
+        date: c.deadline!,
+        allDay: true,
+        url: appBaseUrl ? `${appBaseUrl}/companies/${c.id}` : null,
+      })),
     ...(tasks ?? []).map((t) => ({
       uid: `task-${t.id}`,
-      title: `タスク: ${t.title}`,
+      title: `${companyPrefix(t.company_id)}タスク: ${t.title}`,
       description: t.company_id ? `企業: ${byCompanyId.get(t.company_id) ?? "未設定"}` : null,
       date: t.deadline!,
       allDay: true,
@@ -112,8 +121,13 @@ export async function GET(request: Request) {
     ...(companyEvents ?? []).flatMap((event) =>
       buildCompanyEventScheduleEntries(event).map((entry) => ({
         uid: `company-event-${entry.id}`,
-        title: `${getCompanyEventScheduleLabel(event.type as CompanyEventType, entry)}: ${event.title}`,
-        description: event.memo,
+        title: `${companyPrefix(event.company_id)}${getCompanyEventScheduleLabel(event.type as CompanyEventType, entry)}: ${event.title}`,
+        description: [
+          byCompanyId.get(event.company_id) && `企業: ${byCompanyId.get(event.company_id)}`,
+          event.memo,
+        ]
+          .filter(Boolean)
+          .join("\n"),
         date: entry.date,
         startTime: entry.startTime,
         endTime: entry.endTime,

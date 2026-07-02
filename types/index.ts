@@ -1,10 +1,13 @@
 /**
- * 選考ステータス = 選考プロセスの「段階」: 未エントリー → マイページ登録済み → ES → Webテスト → 面接
+ * 選考ステータス = 選考プロセスの「段階」:
+ * 未エントリー → マイページ登録済み → インターン申込済み → インターン結果待ち → ES → Webテスト → 面接
  * 内定/落選/辞退などの「結末」は status ではなく COMPANY_RESULTS で持つ(役割を分離)。
  */
 export const COMPANY_STATUSES = [
   "未エントリー",
   "マイページ登録済み",
+  "インターン申込済み",
+  "インターン結果待ち",
   "ES",
   "Webテスト",
   "面接",
@@ -295,4 +298,7 @@ export type CalendarCompanyEventRow = Pick<
   | "event_time"
   | "event_end_time"
   | "candidate_slots"
->;
+> & {
+  /** どの企業の予定か表示するための join 結果 */
+  companies: { name: string } | null;
+};
