@@ -39,13 +39,13 @@ export async function getCalendarCompanyScheduleEvents(): Promise<
   const { data, error } = await supabase
     .from("company_events")
     .select(
-      "id, company_id, type, title, schedule_status, event_date, event_time, event_end_time, candidate_slots"
+      "id, company_id, type, title, schedule_status, event_date, event_time, event_end_time, candidate_slots, companies(name)"
     )
     .order("event_date", { ascending: true, nullsFirst: false });
 
   if (isMissingCompanyEventsTable(error)) return [];
   if (error) throw new Error(error.message);
-  return (data ?? []) as CalendarCompanyEventRow[];
+  return (data ?? []) as unknown as CalendarCompanyEventRow[];
 }
 
 export async function createCompanyEvent(input: CompanyEventInsert) {

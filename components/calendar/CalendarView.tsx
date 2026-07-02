@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { getCalendarDays } from "@/lib/utils";
@@ -13,6 +13,7 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
   const searchParams = useSearchParams();
   const year = parseInt(searchParams.get("y") ?? String(new Date().getFullYear()), 10);
   const month = parseInt(searchParams.get("m") ?? String(new Date().getMonth()), 10);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const days = useMemo(() => getCalendarDays(year, month), [year, month]);
 
@@ -34,6 +35,7 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("y", String(d.getFullYear()));
     params.set("m", String(d.getMonth()));
+    setSelectedDay(null);
     router.push(`/calendar?${params.toString()}`);
   };
 
@@ -47,6 +49,8 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
     today.getFullYear() === year &&
     today.getMonth() === month &&
     today.getDate() === day;
+
+  const selectedEvents = selectedDay !== null ? (eventsByDay[selectedDay] ?? []) : [];
 
   return (
     <div>
@@ -69,7 +73,16 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
         {days.map((day, i) => (
           <div
             key={i}
-            className={`bg-card min-h-[72px] p-1 ${day === null ? "bg-muted/30" : ""}`}
+            onClick={() => {
+              if (day !== null && (eventsByDay[day]?.length ?? 0) > 0) {
+                setSelectedDay(selectedDay === day ? null : day);
+              }
+            }}
+            className={`bg-card min-h-[72px] p-1 ${day === null ? "bg-muted/30" : ""} ${
+              day !== null && (eventsByDay[day]?.length ?? 0) > 0
+                ? "cursor-pointer hover:bg-muted/40 transition-colors"
+                : ""
+            } ${selectedDay === day ? "ring-2 ring-inset ring-accent" : ""}`}
           >
             {day !== null && (
               <>
@@ -82,13 +95,12 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
                 </span>
                 <div className="mt-0.5 space-y-0.5">
                   {(eventsByDay[day] ?? []).slice(0, 2).map((e) => (
-                    <Link
+                    <span
                       key={e.id}
-                      href={e.href}
                       className={`block text-[10px] leading-tight truncate rounded px-0.5 ${getCalendarEventColor(e.type)}`}
                     >
                       {e.title}
-                    </Link>
+                    </span>
                   ))}
                   {(eventsByDay[day]?.length ?? 0) > 2 && (
                     <span className="text-[10px] text-muted-foreground">
@@ -102,9 +114,45 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
         ))}
       </div>
 
+      {selectedDay !== null && (
+        <Card className="mt-4 border-accent/30 bg-accent/5">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium">
+              {year}年{month + 1}月{selectedDay}日の予定（{selectedEvents.length}件）
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>
+              閉じる
+            </Button>
+          </div>
+          {selectedEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-1">予定はありません</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {selectedEvents.map((e) => (
+                <li key={e.id}>
+                  <Link
+                    href={e.href}
+                    className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 hover:bg-muted/30 transition-colors"
+                  >
+                    <span
+                      className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${getCalendarEventColor(e.type)}`}
+                    >
+                      {getCalendarEventTypeLabel(e.type)}
+                    </span>
+                    <span className="min-w-0 text-sm break-words">{e.title}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
       <Card className="mt-4">
-        <p className="text-xs text-muted-foreground mb-2">凡例</p>
-        <div className="flex gap-4 text-xs">
+        <p className="text-xs text-muted-foreground mb-2">
+          凡例（日付をクリックするとその日の予定が全文表示されます）
+        </p>
+        <div className="flex flex-wrap gap-4 text-xs">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded bg-blue-500/50" /> 企業締切
           </span>
@@ -145,5 +193,24 @@ function getCalendarEventColor(type: CalendarEvent["type"]): string {
       return "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300";
     case "other":
       return "bg-muted text-muted-foreground";
+  }
+}
+
+function getCalendarEventTypeLabel(type: CalendarEvent["type"]): string {
+  switch (type) {
+    case "company":
+      return "企業締切";
+    case "task":
+      return "タスク";
+    case "internship":
+      return "インターン";
+    case "interview":
+      return "面接";
+    case "career_fair":
+      return "合同説明会";
+    case "seminar":
+      return "セミナー";
+    case "other":
+      return "その他";
   }
 }

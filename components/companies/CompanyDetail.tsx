@@ -31,6 +31,7 @@ import {
   getLevelColor,
   getResultColor,
   formatDate,
+  getTodayString,
   isOverdue,
   countWords,
   formatTags,
@@ -69,6 +70,9 @@ export function CompanyDetail({
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
   const upcomingItems = buildCompanyUpcomingSchedule(company, tasks, events);
+  // 次のアクション未入力時に自動表示する、今日以降で最も近い予定
+  const todayString = getTodayString();
+  const nextUpcoming = upcomingItems.find((item) => item.date >= todayString);
 
   const handleSaveCompany = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -138,7 +142,7 @@ export function CompanyDetail({
             </span>
           )}
         </div>
-        {company.next_action && (
+        {company.next_action ? (
           <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
             <span className="mt-0.5 shrink-0 text-xs font-medium text-amber-600 dark:text-amber-400">
               次のアクション
@@ -147,6 +151,20 @@ export function CompanyDetail({
               <LinkifiedText text={company.next_action} />
             </span>
           </div>
+        ) : (
+          nextUpcoming && (
+            /* 手入力がなければ直近の予定・タスクから自動で表示する */
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+              <span className="mt-0.5 shrink-0 text-xs font-medium text-amber-600 dark:text-amber-400">
+                次の予定（自動）
+              </span>
+              <span className="text-sm text-foreground">
+                {nextUpcoming.label}: {nextUpcoming.title}（
+                {formatDate(nextUpcoming.date)}
+                {nextUpcoming.time ? ` ${nextUpcoming.time}` : ""}）
+              </span>
+            </div>
+          )
         )}
       </Card>
 

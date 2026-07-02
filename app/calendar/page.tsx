@@ -55,7 +55,7 @@ export default async function CalendarPage() {
       ...tasks.map((t) => ({
         id: `t-${t.id}`,
         date: t.deadline!,
-        title: t.title,
+        title: t.companies?.name ? `${t.companies.name}: ${t.title}` : t.title,
         type: "task" as const,
         companyId: t.company_id ?? undefined,
         href: t.company_id ? `/companies/${t.company_id}` : "/tasks",
@@ -72,7 +72,12 @@ export default async function CalendarPage() {
           return {
             id: `e-${entry.id}`,
             date: entry.date,
-            title: [event.title, suffix && `(${suffix})`, timeLabel && `(${timeLabel})`]
+            title: [
+              event.companies?.name && `${event.companies.name}:`,
+              event.title,
+              suffix && `(${suffix})`,
+              timeLabel && `(${timeLabel})`,
+            ]
               .filter(Boolean)
               .join(" "),
             type: event.type as CalendarEvent["type"],

@@ -48,7 +48,9 @@ export async function getScheduleForDates(dates: string[]) {
       items.push({
         id: `e-${entry.id}`,
         date: entry.date,
-        title: event.title,
+        title: event.companies?.name
+          ? `${event.companies.name}: ${event.title}`
+          : event.title,
         kind: "company_event",
         label: getCompanyEventScheduleLabel(
           event.type as CompanyEventType,
@@ -77,7 +79,9 @@ export async function getScheduleForDates(dates: string[]) {
     items.push({
       id: `t-${task.id}`,
       date: task.deadline,
-      title: task.title,
+      title: task.companies?.name
+        ? `${task.companies.name}: ${task.title}`
+        : task.title,
       kind: "task",
       label: "タスク",
       href: task.company_id ? `/companies/${task.company_id}` : "/tasks",

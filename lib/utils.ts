@@ -52,6 +52,8 @@ export function formatTags(tags: string[] | null): string {
 const STATUS_COLORS: Record<CompanyStatus, string> = {
   未エントリー: "bg-muted text-muted-foreground",
   マイページ登録済み: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+  インターン申込済み: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  インターン結果待ち: "bg-teal-500/10 text-teal-700 dark:text-teal-300",
   ES: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
   Webテスト: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
   面接: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
