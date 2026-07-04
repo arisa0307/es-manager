@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCompany, updateCompany } from "@/lib/actions/companies";
 import { deleteCompanyEvent } from "@/lib/actions/company-events";
+import { deleteES } from "@/lib/actions/es";
 import { deleteTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge } from "@/components/ui/Badge";
 import { LinkifiedText } from "@/components/ui/LinkifiedText";
@@ -65,6 +66,7 @@ export function CompanyDetail({
   const [showEvent, setShowEvent] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingEsId, setEditingEsId] = useState<string | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
@@ -105,6 +107,11 @@ export function CompanyDetail({
   const handleDeleteTask = (id: string, title: string) => {
     if (!confirm(`タスク「${title}」を削除しますか？`)) return;
     startTransition(() => deleteTask(id));
+  };
+
+  const handleDeleteES = (id: string) => {
+    if (!confirm("このESを削除しますか？")) return;
+    startTransition(() => deleteES(id));
   };
 
   return (
@@ -348,13 +355,51 @@ export function CompanyDetail({
         {esList.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">ESがありません</p>
         ) : (
-          <div className="space-y-2">
+          <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
             {esList.map((es) => {
+              if (editingEsId === es.id) {
+                return (
+                  <div
+                    key={es.id}
+                    className="rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+                  >
+                    <ESForm
+                      companies={[{ id: company.id, name: company.name }]}
+                      defaultCompanyId={company.id}
+                      es={es}
+                      onSuccess={() => setEditingEsId(null)}
+                      onCancel={() => setEditingEsId(null)}
+                    />
+                  </div>
+                );
+              }
               const words = countWords(es.answer);
               const over = es.word_count !== null && words > es.word_count;
               return (
                 <div key={es.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-                  <p className="text-sm font-medium">{es.question}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 text-sm font-medium">{es.question}</p>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowES(false);
+                          setEditingEsId(es.id);
+                        }}
+                      >
+                        編集
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDeleteES(es.id)}
+                        disabled={isPending}
+                      >
+                        削除
+                      </Button>
+                    </div>
+                  </div>
                   {es.tags && es.tags.length > 0 && (
                     <p className="text-xs text-muted-foreground mt-1">{formatTags(es.tags)}</p>
                   )}
