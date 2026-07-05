@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CompanyForm } from "./CompanyForm";
 import { InlineCompanySelect } from "./InlineCompanySelect";
+import { InlineCompanyText } from "./InlineCompanyText";
 import {
   formatDate,
   getStatusColor,
@@ -93,10 +94,13 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
                   <Link
                     href={`/companies/${c.id}`}
                     prefetch={false}
-                    className="font-medium text-foreground hover:underline"
+                    className="block font-medium text-foreground hover:underline"
                   >
                     {c.name}
                   </Link>
+                  <div className="mt-1">
+                    <InlineCompanyText companyId={c.id} value={c.progress_note} />
+                  </div>
                 </td>
                 <td className="px-3 py-2.5 text-muted-foreground">
                   {c.industry ?? "—"}
@@ -168,6 +172,9 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
                 colorClass={getLevelColor(c.desired_level as DesiredLevel)}
                 allowEmpty
               />
+            </div>
+            <div className="mt-2">
+              <InlineCompanyText companyId={c.id} value={c.progress_note} />
             </div>
             <div className="flex items-center gap-2 mt-2">
               <InlineCompanySelect

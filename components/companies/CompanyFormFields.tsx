@@ -29,6 +29,7 @@ export function parseCompanyFormData(form: FormData) {
     url: companyUrl,
     desired_level: (form.get("desired_level") as DesiredLevel) || null,
     status: form.get("status") as CompanyStatus,
+    progress_note: (form.get("progress_note") as string) || null,
     result: (form.get("result") as string) || null,
     salary: (form.get("salary") as string) || null,
     next_action: (form.get("next_action") as string) || null,
@@ -126,6 +127,13 @@ export function CompanyFormFields({
         <p className="text-xs text-muted-foreground">
           ステータス=いま選考のどの段階か / 選考結果=最終的にどうなったか(内定・落選・辞退)。内定したらステータスはそのまま、結果に「内定」を入れます。
         </p>
+        <Field label="進捗状況（自由記述・一覧にそのまま表示されます）">
+          <Input
+            name="progress_note"
+            defaultValue={company?.progress_note ?? ""}
+            placeholder="例: SPIリンク待ち / ES提出済み / インターン結果待ち"
+          />
+        </Field>
         <Field label="年収・待遇">
           <Input name="salary" defaultValue={company?.salary ?? ""} />
         </Field>

@@ -16,6 +16,7 @@ import {
   parseCompanyFormData,
 } from "./CompanyFormFields";
 import { CompanyInfoView } from "./CompanyInfoView";
+import { InlineCompanyText } from "./InlineCompanyText";
 import { CompanyEventForm } from "./CompanyEventForm";
 import { CompanyUpcomingSchedule } from "./CompanyUpcomingSchedule";
 import { buildCompanyUpcomingSchedule } from "@/lib/company-schedule";
@@ -148,6 +149,12 @@ export function CompanyDetail({
               締切 {formatDate(company.deadline)}
             </span>
           )}
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="shrink-0 text-xs font-medium text-muted-foreground">
+            進捗状況
+          </span>
+          <InlineCompanyText companyId={company.id} value={company.progress_note} />
         </div>
         {company.next_action ? (
           <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">

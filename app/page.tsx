@@ -184,6 +184,11 @@ export default async function DashboardPage() {
                   >
                     <span className="min-w-0">
                       <span className="font-medium text-foreground">{c.name}</span>
+                      {c.progress_note && (
+                        <span className="ml-2 inline-flex items-center rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+                          {c.progress_note}
+                        </span>
+                      )}
                       {nearestTaskByCompany.get(c.id) && (
                         <span className="block text-xs text-muted-foreground truncate">
                           直近タスク: {nearestTaskByCompany.get(c.id)?.title}
