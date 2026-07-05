@@ -78,6 +78,8 @@ export type Company = {
   url: string | null;
   desired_level: DesiredLevel | null;
   status: CompanyStatus;
+  /** その企業固有の進捗状況を自由記述で(例: SPIリンク待ち / ES提出済み / インターン結果待ち) */
+  progress_note: string | null;
   result: string | null;
   salary: string | null;
   next_action: string | null;
@@ -164,6 +166,7 @@ export type CompanyInsert = {
   url?: string | null;
   desired_level?: DesiredLevel | null;
   status?: CompanyStatus;
+  progress_note?: string | null;
   result?: string | null;
   salary?: string | null;
   next_action?: string | null;
