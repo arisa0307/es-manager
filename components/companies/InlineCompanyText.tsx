@@ -43,6 +43,8 @@ export function InlineCompanyText({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={save}
         onKeyDown={(e) => {
+          // IME変換中(日本語入力の変換確定)のEnterは保存扱いにしない
+          if (e.nativeEvent.isComposing) return;
           if (e.key === "Enter") {
             e.preventDefault();
             e.currentTarget.blur();
