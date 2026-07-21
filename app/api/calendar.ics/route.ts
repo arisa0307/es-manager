@@ -12,6 +12,22 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/** カレンダー一覧で種別をひと目で見分けるためのアイコン */
+const COMPANY_EVENT_ICONS: Record<CompanyEventType, string> = {
+  info_session: "📢",
+  internship: "🏢",
+  es: "📝",
+  web_test: "💻",
+  interview: "👥",
+  other: "📌",
+};
+
+const GENERAL_EVENT_ICONS: Record<GeneralEventType, string> = {
+  career_fair: "🎪",
+  seminar: "📚",
+  other: "📌",
+};
+
 function badRequest(message: string, status = 400) {
   return new Response(message, { status });
 }
@@ -55,7 +71,7 @@ export async function GET(request: Request) {
       supabase
         .from("company_events")
         .select(
-          "id, company_id, type, title, schedule_status, event_date, event_time, event_end_time, candidate_slots, memo"
+          "id, company_id, type, title, schedule_status, event_date, event_time, event_end_time, candidate_slots, memo, result"
         )
         .eq("user_id", subscription.user_id),
       supabase
@@ -79,11 +95,12 @@ export async function GET(request: Request) {
   const byCompanyId = new Map((companies ?? []).map((c) => [c.id, c.name]));
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()?.replace(/\/$/, "") ?? "";
 
-  // どの企業の予定か一目で分かるよう、タイトル先頭に【企業名】を付ける
-  const companyPrefix = (companyId: string | null | undefined) => {
+  // カレンダー上でタイトルが途中で切れても種別が分かるよう、
+  // 「アイコン + 種別 ｜ 企業名 タイトル」の順で先頭に種別を置く。
+  const companySuffix = (companyId: string | null | undefined) => {
     if (!companyId) return "";
     const name = byCompanyId.get(companyId);
-    return name ? `【${name}】` : "";
+    return name ? `${name} ` : "";
   };
 
   const events = [
@@ -91,14 +108,15 @@ export async function GET(request: Request) {
       .filter((c) => c.deadline)
       .map((c) => ({
         uid: `company-deadline-${c.id}`,
-        title: `【${c.name}】エントリー締切`,
+        title: `⏰ 締切｜${c.name} エントリー締切`,
+        description: `企業: ${c.name}`,
         date: c.deadline!,
         allDay: true,
         url: appBaseUrl ? `${appBaseUrl}/companies/${c.id}` : null,
       })),
     ...(tasks ?? []).map((t) => ({
       uid: `task-${t.id}`,
-      title: `${companyPrefix(t.company_id)}タスク: ${t.title}`,
+      title: `✅ タスク｜${companySuffix(t.company_id)}${t.title}`,
       description: t.company_id ? `企業: ${byCompanyId.get(t.company_id) ?? "未設定"}` : null,
       date: t.deadline!,
       allDay: true,
@@ -110,7 +128,7 @@ export async function GET(request: Request) {
     })),
     ...(generalEvents ?? []).map((g) => ({
       uid: `general-${g.id}`,
-      title: `${GENERAL_EVENT_TYPE_LABELS[g.type as GeneralEventType]}: ${g.title}`,
+      title: `${GENERAL_EVENT_ICONS[g.type as GeneralEventType] ?? "📌"} ${GENERAL_EVENT_TYPE_LABELS[g.type as GeneralEventType]}｜${g.title}`,
       description: g.memo,
       location: g.location,
       date: g.event_date!,
@@ -121,9 +139,10 @@ export async function GET(request: Request) {
     ...(companyEvents ?? []).flatMap((event) =>
       buildCompanyEventScheduleEntries(event).map((entry) => ({
         uid: `company-event-${entry.id}`,
-        title: `${companyPrefix(event.company_id)}${getCompanyEventScheduleLabel(event.type as CompanyEventType, entry)}: ${event.title}`,
+        title: `${COMPANY_EVENT_ICONS[event.type as CompanyEventType] ?? "📌"} ${getCompanyEventScheduleLabel(event.type as CompanyEventType, entry)}｜${companySuffix(event.company_id)}${event.title}`,
         description: [
           byCompanyId.get(event.company_id) && `企業: ${byCompanyId.get(event.company_id)}`,
+          event.result && `結果: ${event.result}`,
           event.memo,
         ]
           .filter(Boolean)

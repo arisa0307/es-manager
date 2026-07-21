@@ -34,10 +34,10 @@ export function TaskFilters() {
         <option value="">優先度</option>
         {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>)}
       </Select>
-      <Select value={searchParams.get("done") ?? ""} onChange={(e) => update("done", e.target.value)} className="sm:w-28">
-        <option value="">すべて</option>
+      <Select value={searchParams.get("done") ?? "false"} onChange={(e) => update("done", e.target.value)} className="sm:w-28">
         <option value="false">未完了</option>
         <option value="true">完了</option>
+        <option value="all">すべて</option>
       </Select>
       <Select value={searchParams.get("sort") ?? "deadline"} onChange={(e) => update("sort", e.target.value)} className="sm:w-36">
         <option value="deadline">締切順</option>

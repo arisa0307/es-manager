@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import {
+  COMPANY_EVENT_RESULTS,
   COMPANY_EVENT_TYPES,
   COMPANY_EVENT_TYPE_LABELS,
   EVENT_SCHEDULE_STATUSES,
@@ -198,12 +199,21 @@ export function CompanyEventForm({
           </div>
         )}
       </div>
-      <Field label="メモ">
+      <Field label="結果">
+        <Select name="result" defaultValue={event?.result ?? ""}>
+          {COMPANY_EVENT_RESULTS.map((r) => (
+            <option key={r} value={r}>
+              {r || "—"}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="メモ・内容">
         <Textarea
           name="memo"
-          rows={2}
+          rows={4}
           defaultValue={event?.memo ?? ""}
-          placeholder="場所、URL、準備することなど"
+          placeholder="説明会やインターンの内容、場所、URL、準備することなど"
         />
       </Field>
       {conflicts.length > 0 && (
@@ -287,6 +297,7 @@ export function CompanyEventForm({
         end_time: slot.end_time ?? null,
       })),
       memo: (form.get("memo") as string) || null,
+      result: (form.get("result") as string) || null,
     };
 
     startTransition(async () => {

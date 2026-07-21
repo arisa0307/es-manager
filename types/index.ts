@@ -40,14 +40,28 @@ export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
   low: "低",
 };
 
-export const COMPANY_EVENT_TYPES = ["internship", "interview", "other"] as const;
+export const COMPANY_EVENT_TYPES = [
+  "info_session",
+  "internship",
+  "es",
+  "web_test",
+  "interview",
+  "other",
+] as const;
 export type CompanyEventType = (typeof COMPANY_EVENT_TYPES)[number];
 
 export const COMPANY_EVENT_TYPE_LABELS: Record<CompanyEventType, string> = {
+  info_session: "説明会",
   internship: "インターン",
+  es: "ES",
+  web_test: "Webテスト",
   interview: "面接",
-  other: "説明会・その他",
+  other: "その他",
 };
+
+/** 選考イベントの結果。ES・Webテスト・面接などの通過可否を記録する。 */
+export const COMPANY_EVENT_RESULTS = ["", "結果待ち", "通過", "不通過"] as const;
+export type CompanyEventResult = (typeof COMPANY_EVENT_RESULTS)[number];
 
 export const EVENT_SCHEDULE_STATUSES = [
   "confirmed",
@@ -131,6 +145,8 @@ export type CompanyEvent = {
   event_end_time?: string | null;
   candidate_slots?: CompanyEventCandidateSlot[] | null;
   memo: string | null;
+  /** ES・Webテスト・面接などの通過可否 */
+  result?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -215,6 +231,7 @@ export type CompanyEventInsert = {
   event_end_time?: string | null;
   candidate_slots?: CompanyEventCandidateSlot[] | null;
   memo?: string | null;
+  result?: string | null;
 };
 
 export type CompanyEventUpdate = Partial<Omit<CompanyEventInsert, "company_id">>;
