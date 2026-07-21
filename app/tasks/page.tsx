@@ -24,8 +24,9 @@ export default async function TasksPage({
   let companies: Awaited<ReturnType<typeof getCompanies>> = [];
   let error: string | null = null;
 
+  // 既定は未完了のみ。すべて見たいときは done=all を指定する。
   const isDone =
-    params.done === "true" ? true : params.done === "false" ? false : undefined;
+    params.done === "all" ? undefined : params.done === "true" ? true : false;
 
   try {
     [tasks, companies] = await Promise.all([

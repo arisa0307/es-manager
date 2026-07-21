@@ -489,11 +489,30 @@ export function CompanyDetail({
 
 function getEventTypeColor(type: CompanyEventType): string {
   switch (type) {
+    case "info_session":
+      return "bg-violet-500/10 text-violet-700 dark:text-violet-300";
     case "internship":
       return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    case "es":
+      return "bg-blue-500/10 text-blue-700 dark:text-blue-300";
+    case "web_test":
+      return "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300";
     case "interview":
       return "bg-pink-500/10 text-pink-700 dark:text-pink-300";
     case "other":
+      return "bg-muted text-muted-foreground";
+  }
+}
+
+function getEventResultColor(result: string): string {
+  switch (result) {
+    case "通過":
+      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    case "不通過":
+      return "bg-red-500/10 text-red-600 dark:text-red-400";
+    case "結果待ち":
+      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    default:
       return "bg-muted text-muted-foreground";
   }
 }
@@ -549,6 +568,11 @@ function EventCard({
                 {COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType]}
               </Badge>
               <p className="text-sm font-medium">{event.title}</p>
+              {event.result && (
+                <Badge className={getEventResultColor(event.result)}>
+                  {event.result}
+                </Badge>
+              )}
             </div>
             {scheduleEntries.length === 0 ? (
               <p className="text-xs text-muted-foreground mt-1">日程未定</p>
@@ -586,9 +610,9 @@ function EventCard({
               </p>
             )}
             {event.memo && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <div className="mt-2 rounded-md border border-border bg-card px-2.5 py-2 text-sm text-foreground">
                 <LinkifiedText text={event.memo} />
-              </p>
+              </div>
             )}
           </div>
           <div className="flex gap-1 shrink-0">

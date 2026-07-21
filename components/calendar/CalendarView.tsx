@@ -183,8 +183,14 @@ function getCalendarEventColor(type: CalendarEvent["type"]): string {
       return "bg-blue-500/10 text-blue-700 dark:text-blue-300";
     case "task":
       return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    case "info_session":
+      return "bg-violet-500/10 text-violet-700 dark:text-violet-300";
     case "internship":
       return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    case "es":
+      return "bg-blue-500/10 text-blue-700 dark:text-blue-300";
+    case "web_test":
+      return "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300";
     case "interview":
       return "bg-pink-500/10 text-pink-700 dark:text-pink-300";
     case "career_fair":
@@ -202,8 +208,14 @@ function getCalendarEventTypeLabel(type: CalendarEvent["type"]): string {
       return "企業締切";
     case "task":
       return "タスク";
+    case "info_session":
+      return "説明会";
     case "internship":
       return "インターン";
+    case "es":
+      return "ES";
+    case "web_test":
+      return "Webテスト";
     case "interview":
       return "面接";
     case "career_fair":
