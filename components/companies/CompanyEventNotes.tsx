@@ -9,12 +9,12 @@ import {
 } from "@/types";
 
 /**
- * その企業の説明会・インターンなどの「メモ・内容」だけを抜き出してまとめ読みする欄。
- * 予定・日程は日付管理が主目的なので、内容の振り返りはここに集約する。
+ * その企業の説明会・インターンなどの「参加後の記録」だけを抜き出してまとめ読みする欄。
+ * 事前メモ(URL・服装など)は対象外にして、内容の振り返りに集中できるようにする。
  */
 export function CompanyEventNotes({ events }: { events: CompanyEvent[] }) {
   const notes = events
-    .filter((event) => event.memo && event.memo.trim())
+    .filter((event) => event.report && event.report.trim())
     .sort((a, b) => {
       // 日付の新しい順。日程未定は末尾へ。
       if (!a.event_date && !b.event_date) return 0;
@@ -26,15 +26,15 @@ export function CompanyEventNotes({ events }: { events: CompanyEvent[] }) {
   return (
     <Card>
       <div className="mb-3">
-        <h2 className="text-sm font-medium text-foreground">記録・メモ</h2>
+        <h2 className="text-sm font-medium text-foreground">参加後の記録</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          説明会やインターンの内容など、予定に書いたメモをまとめて読めます
+          説明会やインターンで聞いた内容だけをまとめています（事前メモは除く）
         </p>
       </div>
 
       {notes.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">
-          メモはまだありません。「予定・日程」の各予定にある「メモ・内容」に書くと、ここにまとまります。
+          記録はまだありません。「予定・日程」の各予定にある「参加後の記録」に書くと、ここにまとまります。
         </p>
       ) : (
         <div className="space-y-3">
@@ -53,7 +53,7 @@ export function CompanyEventNotes({ events }: { events: CompanyEvent[] }) {
                 </span>
               </div>
               <div className="mt-2 whitespace-pre-wrap text-sm text-foreground">
-                <LinkifiedText text={event.memo!} />
+                <LinkifiedText text={event.report!} />
               </div>
             </div>
           ))}

@@ -619,9 +619,20 @@ function EventCard({
               </p>
             )}
             {event.memo && (
-              /* 全文は上の「記録・メモ」欄にまとまるので、ここでは冒頭だけ表示 */
-              <div className="mt-2 line-clamp-2 rounded-md border border-border bg-card px-2.5 py-2 text-sm text-foreground">
+              <div className="mt-2 rounded-md border border-border bg-card px-2.5 py-2 text-sm text-foreground">
+                <span className="mr-1.5 text-xs font-medium text-muted-foreground">
+                  事前メモ
+                </span>
                 <LinkifiedText text={event.memo} />
+              </div>
+            )}
+            {event.report && (
+              /* 全文は上の「参加後の記録」欄にまとまるので、ここでは冒頭だけ表示 */
+              <div className="mt-2 line-clamp-2 rounded-md border border-border bg-card px-2.5 py-2 text-sm text-foreground">
+                <span className="mr-1.5 text-xs font-medium text-muted-foreground">
+                  参加後の記録
+                </span>
+                <LinkifiedText text={event.report} />
               </div>
             )}
           </div>

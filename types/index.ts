@@ -152,7 +152,10 @@ export type CompanyEvent = {
   event_time?: string | null;
   event_end_time?: string | null;
   candidate_slots?: CompanyEventCandidateSlot[] | null;
+  /** 事前メモ: URL・服装・持ち物など、参加前に見たい情報 */
   memo: string | null;
+  /** 参加後の記録: 説明会で聞いた内容など、後から振り返る情報 */
+  report?: string | null;
   /** ES・Webテスト・面接などの通過可否 */
   result?: string | null;
   created_at: string;
@@ -241,6 +244,7 @@ export type CompanyEventInsert = {
   event_end_time?: string | null;
   candidate_slots?: CompanyEventCandidateSlot[] | null;
   memo?: string | null;
+  report?: string | null;
   result?: string | null;
 };
 
