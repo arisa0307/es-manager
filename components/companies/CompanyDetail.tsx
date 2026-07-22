@@ -20,6 +20,7 @@ import { InlineCompanyText } from "./InlineCompanyText";
 import { CompanyEventForm } from "./CompanyEventForm";
 import { CompanyUpcomingSchedule } from "./CompanyUpcomingSchedule";
 import { CompanySelectionResults } from "./CompanySelectionResults";
+import { CompanyEventNotes } from "./CompanyEventNotes";
 import { buildCompanyUpcomingSchedule } from "@/lib/company-schedule";
 import { buildCompanySelectionSteps } from "@/lib/company-selection";
 import {
@@ -189,6 +190,8 @@ export function CompanyDetail({
       <CompanyUpcomingSchedule items={upcomingItems} />
 
       <CompanySelectionResults steps={selectionSteps} />
+
+      <CompanyEventNotes events={events} />
 
       <Card id="company-events">
         <SectionHeader
@@ -609,7 +612,8 @@ function EventCard({
               </p>
             )}
             {event.memo && (
-              <div className="mt-2 rounded-md border border-border bg-card px-2.5 py-2 text-sm text-foreground">
+              /* 全文は上の「記録・メモ」欄にまとまるので、ここでは冒頭だけ表示 */
+              <div className="mt-2 line-clamp-2 rounded-md border border-border bg-card px-2.5 py-2 text-sm text-foreground">
                 <LinkifiedText text={event.memo} />
               </div>
             )}
