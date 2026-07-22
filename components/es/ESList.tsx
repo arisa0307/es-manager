@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ESForm } from "./ESForm";
-import { countWords, formatTags } from "@/lib/utils";
+import { countWords, formatTags, getSelectionResultColor } from "@/lib/utils";
 import type { Company, ESWithCompany } from "@/types";
 
 export function ESList({
@@ -146,6 +146,11 @@ export function ESList({
                               {words}
                               {item.word_count !== null && ` / ${item.word_count}`}
                             </Badge>
+                            {item.result && (
+                              <Badge className={getSelectionResultColor(item.result)}>
+                                {item.result}
+                              </Badge>
+                            )}
                             {item.tags && item.tags.length > 0 && (
                               <span className="text-xs text-muted-foreground">
                                 {formatTags(item.tags)}

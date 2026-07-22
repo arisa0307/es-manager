@@ -32,7 +32,9 @@ export function CompanySelectionResults({ steps }: { steps: SelectionStep[] }) {
                   className={
                     step.source === "task"
                       ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                      : "bg-muted text-muted-foreground"
+                      : step.source === "es"
+                        ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                        : "bg-muted text-muted-foreground"
                   }
                 >
                   {step.label}
@@ -41,7 +43,7 @@ export function CompanySelectionResults({ steps }: { steps: SelectionStep[] }) {
                   {step.title}
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {step.date ? formatDate(step.date) : "日程未定"}
+                  {step.date ? formatDate(step.date) : "日付なし"}
                 </span>
                 <Badge className={getSelectionResultColor(step.result)}>
                   {step.result}

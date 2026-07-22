@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { countWords, parseTags } from "@/lib/utils";
-import type { Company, ES } from "@/types";
+import { SELECTION_RESULTS, type Company, type ES } from "@/types";
 
 export function ESForm({
   companies,
@@ -53,6 +53,7 @@ export function ESForm({
       word_count: wordCount ? parseInt(wordCount, 10) : null,
       tags: parseTags(tags),
       base_es: baseEs || null,
+      result: (form.get("result") as string) || null,
     };
 
     startTransition(async () => {
@@ -64,6 +65,7 @@ export function ESForm({
             word_count: data.word_count,
             tags: data.tags,
             base_es: data.base_es,
+            result: data.result,
           });
         } else {
           await createES(data);
@@ -144,13 +146,25 @@ export function ESForm({
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs text-muted-foreground mb-1">ベースES</label>
-        <Input
-          value={baseEs}
-          onChange={(e) => setBaseEs(e.target.value)}
-          placeholder="テンプレ名など"
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">ベースES</label>
+          <Input
+            value={baseEs}
+            onChange={(e) => setBaseEs(e.target.value)}
+            placeholder="テンプレ名など"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">選考結果</label>
+          <Select name="result" defaultValue={es?.result ?? ""}>
+            {SELECTION_RESULTS.map((r) => (
+              <option key={r} value={r}>
+                {r || "—"}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       <div>
