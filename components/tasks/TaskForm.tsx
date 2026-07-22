@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, type Company, type Task, type TaskPriority } from "@/types";
+import { SELECTION_RESULTS, TASK_PRIORITIES, TASK_PRIORITY_LABELS, type Company, type Task, type TaskPriority } from "@/types";
 
 export function TaskForm({
   companies,
@@ -33,6 +33,7 @@ export function TaskForm({
       memo: (form.get("memo") as string) || null,
       deadline: (form.get("deadline") as string) || null,
       priority: form.get("priority") as TaskPriority,
+      result: (form.get("result") as string) || null,
       company_id: (form.get("company_id") as string) || defaultCompanyId || null,
     };
 
@@ -80,6 +81,16 @@ export function TaskForm({
             ))}
           </Select>
         </div>
+      </div>
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">
+          選考結果（ES・AI面接など。日程が未定でもここに記録できます）
+        </label>
+        <Select name="result" defaultValue={task?.result ?? ""}>
+          {SELECTION_RESULTS.map((r) => (
+            <option key={r} value={r}>{r || "—"}</option>
+          ))}
+        </Select>
       </div>
       <div>
         <label className="block text-xs text-muted-foreground mb-1">メモ</label>

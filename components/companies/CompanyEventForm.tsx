@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import {
-  COMPANY_EVENT_RESULTS,
+  SELECTION_RESULTS,
   COMPANY_EVENT_TYPES,
   COMPANY_EVENT_TYPE_LABELS,
   EVENT_SCHEDULE_STATUSES,
@@ -201,7 +201,7 @@ export function CompanyEventForm({
       </div>
       <Field label="結果">
         <Select name="result" defaultValue={event?.result ?? ""}>
-          {COMPANY_EVENT_RESULTS.map((r) => (
+          {SELECTION_RESULTS.map((r) => (
             <option key={r} value={r}>
               {r || "—"}
             </option>

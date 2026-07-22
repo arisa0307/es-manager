@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TaskForm } from "./TaskForm";
-import { formatDate, getPriorityColor, isOverdue } from "@/lib/utils";
+import { formatDate, getPriorityColor, getSelectionResultColor, isOverdue } from "@/lib/utils";
 import {
   DESIRED_LEVEL_LABELS,
   TASK_PRIORITY_LABELS,
@@ -75,6 +75,11 @@ export function TaskList({
                   <Badge className={getPriorityColor(task.priority as TaskPriority)}>
                     {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
                   </Badge>
+                  {task.result && (
+                    <Badge className={getSelectionResultColor(task.result)}>
+                      {task.result}
+                    </Badge>
+                  )}
                   {task.deadline && (
                     <span className={`text-xs ${isOverdue(task.deadline, task.is_done) ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
                       {formatDate(task.deadline)}
