@@ -75,6 +75,20 @@ export function getResultColor(result: CompanyResult | string | null): string {
   return RESULT_COLORS[result] ?? "bg-muted text-muted-foreground";
 }
 
+/** 選考ステップ(ES・Webテスト・面接など)の通過可否の色 */
+export function getSelectionResultColor(result: string | null): string {
+  switch (result) {
+    case "通過":
+      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    case "不通過":
+      return "bg-red-500/10 text-red-600 dark:text-red-400";
+    case "結果待ち":
+      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}
+
 /**
  * 「持ち駒」(まだ選考が生きている企業)の判定。
  * 結果が確定(内定/落選/辞退)しておらず、エントリー済みのものを指す。

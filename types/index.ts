@@ -59,9 +59,13 @@ export const COMPANY_EVENT_TYPE_LABELS: Record<CompanyEventType, string> = {
   other: "その他",
 };
 
-/** 選考イベントの結果。ES・Webテスト・面接などの通過可否を記録する。 */
-export const COMPANY_EVENT_RESULTS = ["", "結果待ち", "通過", "不通過"] as const;
-export type CompanyEventResult = (typeof COMPANY_EVENT_RESULTS)[number];
+/**
+ * 選考ステップの結果。ES・Webテスト・AI面接などの通過可否を記録する。
+ * 日付が決まっている予定(company_events)と、日付未定でタスク管理するもの(tasks)の
+ * どちらでも同じ値を使う。
+ */
+export const SELECTION_RESULTS = ["", "結果待ち", "通過", "不通過"] as const;
+export type SelectionResult = (typeof SELECTION_RESULTS)[number];
 
 export const EVENT_SCHEDULE_STATUSES = [
   "confirmed",
@@ -130,6 +134,8 @@ export type Task = {
   priority: TaskPriority;
   is_done: boolean;
   memo: string | null;
+  /** ES・AI面接など、日付未定でタスク管理する選考ステップの通過可否 */
+  result?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -217,6 +223,7 @@ export type TaskInsert = {
   priority?: TaskPriority;
   is_done?: boolean;
   memo?: string | null;
+  result?: string | null;
 };
 
 export type TaskUpdate = Partial<TaskInsert>;

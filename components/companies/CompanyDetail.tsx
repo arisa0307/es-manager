@@ -19,7 +19,9 @@ import { CompanyInfoView } from "./CompanyInfoView";
 import { InlineCompanyText } from "./InlineCompanyText";
 import { CompanyEventForm } from "./CompanyEventForm";
 import { CompanyUpcomingSchedule } from "./CompanyUpcomingSchedule";
+import { CompanySelectionResults } from "./CompanySelectionResults";
 import { buildCompanyUpcomingSchedule } from "@/lib/company-schedule";
+import { buildCompanySelectionSteps } from "@/lib/company-selection";
 import {
   buildCompanyEventScheduleEntries,
   getCompanyEventStatusText,
@@ -32,6 +34,7 @@ import {
   getStatusColor,
   getLevelColor,
   getResultColor,
+  getSelectionResultColor,
   formatDate,
   getTodayString,
   isOverdue,
@@ -73,6 +76,7 @@ export function CompanyDetail({
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
   const upcomingItems = buildCompanyUpcomingSchedule(company, tasks, events);
+  const selectionSteps = buildCompanySelectionSteps(tasks, events);
   // 次のアクション未入力時に自動表示する、今日以降で最も近い予定
   const todayString = getTodayString();
   const nextUpcoming = upcomingItems.find((item) => item.date >= todayString);
@@ -183,6 +187,8 @@ export function CompanyDetail({
       </Card>
 
       <CompanyUpcomingSchedule items={upcomingItems} />
+
+      <CompanySelectionResults steps={selectionSteps} />
 
       <Card id="company-events">
         <SectionHeader
@@ -298,6 +304,11 @@ export function CompanyDetail({
                         >
                           {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
                         </Badge>
+                        {task.result && (
+                          <Badge className={getSelectionResultColor(task.result)}>
+                            {task.result}
+                          </Badge>
+                        )}
                         {task.deadline && (
                           <span
                             className={`text-xs ${isOverdue(task.deadline, task.is_done) ? "text-red-600" : "text-muted-foreground"}`}
@@ -504,18 +515,6 @@ function getEventTypeColor(type: CompanyEventType): string {
   }
 }
 
-function getEventResultColor(result: string): string {
-  switch (result) {
-    case "通過":
-      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-    case "不通過":
-      return "bg-red-500/10 text-red-600 dark:text-red-400";
-    case "結果待ち":
-      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-}
 
 function SectionHeader({
   title,
@@ -569,7 +568,7 @@ function EventCard({
               </Badge>
               <p className="text-sm font-medium">{event.title}</p>
               {event.result && (
-                <Badge className={getEventResultColor(event.result)}>
+                <Badge className={getSelectionResultColor(event.result)}>
                   {event.result}
                 </Badge>
               )}
