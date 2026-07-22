@@ -208,12 +208,20 @@ export function CompanyEventForm({
           ))}
         </Select>
       </Field>
-      <Field label="メモ・内容">
+      <Field label="事前メモ（参加前に見る情報）">
         <Textarea
           name="memo"
-          rows={4}
+          rows={2}
           defaultValue={event?.memo ?? ""}
-          placeholder="説明会やインターンの内容、場所、URL、準備することなど"
+          placeholder="URL、場所、服装、持ち物、準備することなど"
+        />
+      </Field>
+      <Field label="参加後の記録（説明会・インターンの内容）">
+        <Textarea
+          name="report"
+          rows={5}
+          defaultValue={event?.report ?? ""}
+          placeholder="聞いた内容、事業・社風、選考フロー、質問したことなど。ここに書いた内容が「記録・メモ」欄にまとまります"
         />
       </Field>
       {conflicts.length > 0 && (
@@ -297,6 +305,7 @@ export function CompanyEventForm({
         end_time: slot.end_time ?? null,
       })),
       memo: (form.get("memo") as string) || null,
+      report: (form.get("report") as string) || null,
       result: (form.get("result") as string) || null,
     };
 
