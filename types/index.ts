@@ -122,6 +122,8 @@ export type ES = {
   word_count: number | null;
   tags: string[] | null;
   base_es: string | null;
+  /** 提出したESの通過可否 */
+  result?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -212,6 +214,7 @@ export type ESInsert = {
   word_count?: number | null;
   tags?: string[] | null;
   base_es?: string | null;
+  result?: string | null;
 };
 
 export type ESUpdate = Partial<Omit<ESInsert, "company_id">>;

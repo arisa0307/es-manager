@@ -2,6 +2,7 @@ import {
   COMPANY_EVENT_TYPE_LABELS,
   type CompanyEvent,
   type CompanyEventType,
+  type ES,
   type Task,
 } from "@/types";
 
@@ -13,19 +14,33 @@ export type SelectionStep = {
   /** 予定なら開催日、タスクなら締切。未定なら null */
   date: string | null;
   result: string;
-  source: "event" | "task";
+  source: "event" | "task" | "es";
   href: string;
 };
 
 /**
- * 企業ページ用: 日付が決まっている予定(company_events)と、
- * 日付未定でタスク管理している選考(tasks)の「結果」を1本にまとめる。
+ * 企業ページ用: 日付が決まっている予定(company_events)、日付未定でタスク管理している
+ * 選考(tasks)、提出済みのES(es)の「結果」を1本にまとめる。
  */
 export function buildCompanySelectionSteps(
   tasks: Task[],
-  events: CompanyEvent[]
+  events: CompanyEvent[],
+  esList: ES[] = []
 ): SelectionStep[] {
   const steps: SelectionStep[] = [];
+
+  for (const es of esList) {
+    if (!es.result) continue;
+    steps.push({
+      id: `es-${es.id}`,
+      label: "ES",
+      title: es.question,
+      date: null,
+      result: es.result,
+      source: "es",
+      href: "#company-es",
+    });
+  }
 
   for (const event of events) {
     if (!event.result) continue;

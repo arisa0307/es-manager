@@ -77,7 +77,7 @@ export function CompanyDetail({
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
   const upcomingItems = buildCompanyUpcomingSchedule(company, tasks, events);
-  const selectionSteps = buildCompanySelectionSteps(tasks, events);
+  const selectionSteps = buildCompanySelectionSteps(tasks, events, esList);
   // 次のアクション未入力時に自動表示する、今日以降で最も近い予定
   const todayString = getTodayString();
   const nextUpcoming = upcomingItems.find((item) => item.date >= todayString);
@@ -354,7 +354,7 @@ export function CompanyDetail({
         )}
       </Card>
 
-      <Card>
+      <Card id="company-es">
         <SectionHeader
           title="ES"
           action={
@@ -424,12 +424,19 @@ export function CompanyDetail({
                   {es.tags && es.tags.length > 0 && (
                     <p className="text-xs text-muted-foreground mt-1">{formatTags(es.tags)}</p>
                   )}
-                  <Badge
-                    className={`mt-2 ${over ? "bg-red-500/10 text-red-600" : "bg-muted text-muted-foreground"}`}
-                  >
-                    {words}
-                    {es.word_count !== null && ` / ${es.word_count}`} 文字
-                  </Badge>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Badge
+                      className={over ? "bg-red-500/10 text-red-600" : "bg-muted text-muted-foreground"}
+                    >
+                      {words}
+                      {es.word_count !== null && ` / ${es.word_count}`} 文字
+                    </Badge>
+                    {es.result && (
+                      <Badge className={getSelectionResultColor(es.result)}>
+                        {es.result}
+                      </Badge>
+                    )}
+                  </div>
                   {es.base_es && (
                     <p className="text-xs text-muted-foreground mt-1">ベース: {es.base_es}</p>
                   )}
