@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { updateCompany } from "@/lib/actions/companies";
 import { deleteCompanyEvent } from "@/lib/actions/company-events";
 import { deleteTask } from "@/lib/actions/tasks";
@@ -12,15 +12,16 @@ import {
   formatDateFull,
   formatScheduleDaysLabel,
   formatWeekday,
+  getTodayString,
   isOverdue,
 } from "@/lib/utils";
 import type { ScheduleItem } from "@/types";
 
 export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
-  const today = new Date().toISOString().split("T")[0];
+  // 「今日」は日本時間で判定する(UTCだと朝は前日扱いになる)
+  const today = getTodayString();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [showPast, setShowPast] = useState(false);
 
   const handleDelete = (item: ScheduleItem) => {
     if (!item.deleteId) return;
@@ -43,10 +44,6 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
       router.refresh();
     });
   };
-
-  // 今日以降と過去に分割。過去は基本畳んでおく。
-  const upcoming = items.filter((item) => item.date >= today);
-  const past = items.filter((item) => item.date < today);
 
   const renderRow = (item: ScheduleItem) => {
     const overdue =
@@ -120,37 +117,9 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
           予定・期限付きタスクがありません
         </p>
       ) : (
-        <div className={isPending ? "opacity-60" : ""}>
-          {past.length > 0 && (
-            <div className="mb-2">
-              <button
-                type="button"
-                onClick={() => setShowPast((v) => !v)}
-                className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <span
-                  className={`transition-transform ${showPast ? "rotate-90" : ""}`}
-                >
-                  ▶
-                </span>
-                過去の予定 {past.length}件を{showPast ? "隠す" : "表示"}
-              </button>
-              {showPast && (
-                <ul className="mt-2 space-y-2 opacity-80">
-                  {past.map(renderRow)}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {upcoming.length > 0 ? (
-            <ul className="space-y-2">{upcoming.map(renderRow)}</ul>
-          ) : (
-            <p className="py-2 text-center text-sm text-muted-foreground">
-              今日以降の予定はありません
-            </p>
-          )}
-        </div>
+        <ul className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
+          {items.map(renderRow)}
+        </ul>
       )}
     </Card>
   );

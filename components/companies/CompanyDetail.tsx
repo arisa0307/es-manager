@@ -73,6 +73,7 @@ export function CompanyDetail({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingEsId, setEditingEsId] = useState<string | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [showPastEvents, setShowPastEvents] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
@@ -81,6 +82,18 @@ export function CompanyDetail({
   // 次のアクション未入力時に自動表示する、今日以降で最も近い予定
   const todayString = getTodayString();
   const nextUpcoming = upcomingItems.find((item) => item.date >= todayString);
+
+  // 「予定・日程」を、日程が終わったもの(最終日 < 今日)とそれ以外に分ける。
+  // 日程未定(日付なし)は終了扱いにしない。
+  const eventLatestDate = (event: CompanyEvent): string | null => {
+    const dates = buildCompanyEventScheduleEntries(event).map((e) => e.date);
+    return dates.length ? dates.reduce((m, d) => (d > m ? d : m)) : null;
+  };
+  const pastEvents = events.filter((e) => {
+    const d = eventLatestDate(e);
+    return d !== null && d < todayString;
+  });
+  const currentEvents = events.filter((e) => !pastEvents.includes(e));
 
   const handleSaveCompany = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -191,8 +204,6 @@ export function CompanyDetail({
 
       <CompanySelectionResults steps={selectionSteps} />
 
-      <CompanyEventNotes events={events} />
-
       <Card id="company-events">
         <SectionHeader
           title="予定・日程"
@@ -217,22 +228,66 @@ export function CompanyDetail({
         {events.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">予定がありません</p>
         ) : (
-          <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
-            {events.map((event) => (
-              <EventCard
-                key={event.id}
-                companyId={company.id}
-                event={event}
-                editing={editingEventId === event.id}
-                isPending={isPending}
-                onEdit={() => {
-                  setShowEvent(false);
-                  setEditingEventId(event.id);
-                }}
-                onEditDone={() => setEditingEventId(null)}
-                onDelete={() => handleDeleteEvent(event.id)}
-              />
-            ))}
+          <div className={isPending ? "opacity-60" : ""}>
+            {currentEvents.length > 0 ? (
+              <div className="space-y-2">
+                {currentEvents.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    companyId={company.id}
+                    event={event}
+                    editing={editingEventId === event.id}
+                    isPending={isPending}
+                    onEdit={() => {
+                      setShowEvent(false);
+                      setEditingEventId(event.id);
+                    }}
+                    onEditDone={() => setEditingEventId(null)}
+                    onDelete={() => handleDeleteEvent(event.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="py-2 text-sm text-muted-foreground">
+                これからの予定はありません
+              </p>
+            )}
+
+            {pastEvents.length > 0 && (
+              <div className="mt-3 border-t border-border pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPastEvents((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <span
+                    className={`transition-transform ${showPastEvents ? "rotate-90" : ""}`}
+                  >
+                    ▶
+                  </span>
+                  終了した予定 {pastEvents.length}件を{showPastEvents ? "隠す" : "表示"}
+                </button>
+                {showPastEvents && (
+                  <div className="mt-2 space-y-2 opacity-80">
+                    {pastEvents.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        companyId={company.id}
+                        event={event}
+                        editing={editingEventId === event.id}
+                        isPending={isPending}
+                        onEdit={() => {
+                          setShowEvent(false);
+                          setEditingEventId(event.id);
+                        }}
+                        onEditDone={() => setEditingEventId(null)}
+                        onDelete={() => handleDeleteEvent(event.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -451,6 +506,8 @@ export function CompanyDetail({
           </div>
         )}
       </Card>
+
+      <CompanyEventNotes events={events} />
 
       <Card>
         <SectionHeader
