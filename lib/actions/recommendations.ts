@@ -22,7 +22,14 @@ export async function getAiNextActions(): Promise<AiNextActionsResult> {
   noStore();
 
   if (!isGeminiConfigured()) {
-    return { ok: false, error: "AI要約は未設定です（GEMINI_API_KEY）。" };
+    // どの環境でキーが見えていないのかを切り分けられるようにする（値は出さない）
+    const where = process.env.VERCEL_ENV
+      ? `Vercel:${process.env.VERCEL_ENV}`
+      : "ローカル";
+    return {
+      ok: false,
+      error: `GEMINI_API_KEY がこの環境（${where}）で読めていません。Vercelなら該当プロジェクトの Settings → Environment Variables に追加し、その環境にチェックを入れてから再デプロイしてください。`,
+    };
   }
 
   try {
