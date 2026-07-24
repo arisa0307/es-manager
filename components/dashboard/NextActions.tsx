@@ -8,13 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import type { RuleRecommendation } from "@/lib/recommendations";
 
-export function NextActions({
-  rules,
-  aiEnabled,
-}: {
-  rules: RuleRecommendation[];
-  aiEnabled: boolean;
-}) {
+export function NextActions({ rules }: { rules: RuleRecommendation[] }) {
   const [aiActions, setAiActions] = useState<AiNextAction[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -37,17 +31,15 @@ export function NextActions({
             締切・進捗から自動抽出。AIで優先順位を整理することもできます
           </p>
         </div>
-        {aiEnabled && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={runAi}
-            disabled={isPending}
-            className="shrink-0"
-          >
-            {isPending ? "整理中..." : aiActions ? "再生成" : "AIで整理"}
-          </Button>
-        )}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={runAi}
+          disabled={isPending}
+          className="shrink-0"
+        >
+          {isPending ? "整理中..." : aiActions ? "再生成" : "AIで整理"}
+        </Button>
       </div>
 
       {error && (
