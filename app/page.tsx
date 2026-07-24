@@ -5,7 +5,10 @@ import { getGeneralEvents } from "@/lib/actions/general-events";
 import { getScheduleForDates } from "@/lib/actions/schedule";
 import { getTaskStats, getTasks } from "@/lib/actions/tasks";
 import { GeneralEventsSection } from "@/components/dashboard/GeneralEventsSection";
+import { NextActions } from "@/components/dashboard/NextActions";
 import { TodayTomorrowSchedule } from "@/components/dashboard/TodayTomorrowSchedule";
+import { buildRuleRecommendations, type RuleRecommendation } from "@/lib/recommendations";
+import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -34,6 +37,8 @@ export default async function DashboardPage() {
   let generalEvents: Awaited<ReturnType<typeof getGeneralEvents>> = [];
   let todayItems: ScheduleItem[] = [];
   let tomorrowItems: ScheduleItem[] = [];
+  let ruleRecs: RuleRecommendation[] = [];
+  const aiEnabled = isGeminiConfigured();
   const today = getTodayString();
   const tomorrow = addDaysToDateString(today, 1);
 
@@ -60,6 +65,8 @@ export default async function DashboardPage() {
         companyStats.byResult[c.result] = (companyStats.byResult[c.result] ?? 0) + 1;
       }
     }
+    // ルールベースの推奨アクションは、企業を絞り込む前の全件から算出する。
+    ruleRecs = buildRuleRecommendations(companies, tasks, today);
     // 1回の取得結果を日付で振り分ける（today/tomorrow で2回叩かない）。
     todayItems = scheduleItems.filter((i) => i.date === today);
     tomorrowItems = scheduleItems.filter((i) => i.date === tomorrow);
@@ -92,6 +99,10 @@ export default async function DashboardPage() {
         <Stat label="未完了タスク" value={taskStats.pending} />
         <Stat label="完了" value={taskStats.completed} />
         <Stat label="持ち駒" value={activeCompaniesCount} />
+      </div>
+
+      <div className="mb-6">
+        <NextActions rules={ruleRecs} aiEnabled={aiEnabled} />
       </div>
 
       <div className="mb-6">
