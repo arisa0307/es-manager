@@ -9,7 +9,7 @@ import {
   buildCompanyEventScheduleEntries,
   getCompanyEventScheduleLabel,
 } from "@/lib/company-event-utils";
-import { formatTimeRange, getTodayString } from "@/lib/utils";
+import { formatTimeRange } from "@/lib/utils";
 
 /** 企業詳細用: 締切・日程・タスクを日付の近い順に並べる */
 export function buildCompanyUpcomingSchedule(
@@ -17,7 +17,6 @@ export function buildCompanyUpcomingSchedule(
   tasks: Task[],
   events: CompanyEvent[]
 ): ScheduleItem[] {
-  const today = getTodayString();
   const href = `/companies/${company.id}`;
   const items: ScheduleItem[] = [];
 
@@ -73,14 +72,9 @@ export function buildCompanyUpcomingSchedule(
     general: 3,
   };
 
-  return items
-    .filter((item) => {
-      if (item.date >= today) return true;
-      if (item.kind === "company_event") return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return kindOrder[a.kind] - kindOrder[b.kind];
-    });
+  // 過去分も残す（一覧側で折りたたんで表示する）
+  return items.sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return kindOrder[a.kind] - kindOrder[b.kind];
+  });
 }
