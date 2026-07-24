@@ -1,5 +1,16 @@
-import { getTodayString, isActiveCompany } from "@/lib/utils";
-import type { Company, Task } from "@/types";
+import { getTodayString, isActiveCompany, LEVEL_ORDER } from "@/lib/utils";
+import type { Company, DesiredLevel, Task } from "@/types";
+
+/** 志望度が高いほど前に出す（同じ締切なら S > A > … の順） */
+function levelWeight(level: DesiredLevel | null): number {
+  if (!level) return 0.4;
+  return (LEVEL_ORDER[level] ?? 5) * 0.12;
+}
+
+/** ES提出前の段階か（ESは書くのに時間がかかるので早めに知らせる） */
+function needsEsWriting(status: Company["status"]): boolean {
+  return status === "未エントリー" || status === "マイページ登録済み" || status === "ES";
+}
 
 export type RuleRecommendation = {
   id: string;
@@ -19,7 +30,8 @@ function daysUntil(dateStr: string, today: string): number {
 
 /**
  * データから機械的に「次にやること」を導く（LLM不要・即時・確実）。
- * 締切超過 → 締切間近タスク → エントリー締切間近 → 進行中で次アクション未設定 の順。
+ * 締切があるものだけを対象にし、同じ締切なら志望度が高い方を上に出す。
+ * ESがまだの企業は書く時間が要るので、締切より早めに知らせる。
  */
 export function buildRuleRecommendations(
   companies: Company[],
@@ -27,57 +39,52 @@ export function buildRuleRecommendations(
   today = getTodayString()
 ): RuleRecommendation[] {
   const recs: RuleRecommendation[] = [];
-  const companyName = new Map(companies.map((c) => [c.id, c.name]));
+  const companyById = new Map(companies.map((c) => [c.id, c]));
 
   for (const t of tasks) {
     if (t.is_done || !t.deadline) continue;
     const d = daysUntil(t.deadline, today);
-    const name = t.company_id ? companyName.get(t.company_id) ?? null : null;
+    const c = t.company_id ? companyById.get(t.company_id) : undefined;
+    const w = levelWeight(c?.desired_level ?? null);
     if (d < 0) {
       recs.push({
         id: `task-over-${t.id}`,
         text: `「${t.title}」の締切が${-d}日過ぎています`,
-        company: name,
-        urgency: -100 + d,
+        company: c?.name ?? null,
+        urgency: -100 + d + w,
       });
-    } else if (d <= 3) {
+    } else if (d <= 5) {
       recs.push({
         id: `task-soon-${t.id}`,
-        text: `「${t.title}」の締切まであと${d}日`,
-        company: name,
-        urgency: d,
+        text:
+          d === 0
+            ? `「${t.title}」の締切は今日`
+            : `「${t.title}」の締切まであと${d}日`,
+        company: c?.name ?? null,
+        urgency: d + w,
       });
     }
   }
 
   for (const c of companies) {
     if (!c.deadline) continue;
-    const d = daysUntil(c.deadline, today);
-    if (d < 0 || d > 7) continue;
     if (c.status === "面接") continue; // 選考が進んでいる企業のエントリー締切は対象外
+    const d = daysUntil(c.deadline, today);
+    if (d < 0) continue;
+    // ES未提出の段階は書く時間が必要なので10日前から、それ以外は5日前から
+    const window = needsEsWriting(c.status) ? 10 : 5;
+    if (d > window) continue;
+
+    const esHint =
+      needsEsWriting(c.status) && d >= 3 ? "（ES作成の時間を確保）" : "";
     recs.push({
       id: `deadline-${c.id}`,
       text:
         d === 0
           ? `「${c.name}」のエントリー締切は今日`
-          : `「${c.name}」のエントリー締切まであと${d}日`,
+          : `「${c.name}」のエントリー締切まであと${d}日${esHint}`,
       company: c.name,
-      urgency: d - 0.5,
-    });
-  }
-
-  const hasOpenTask = new Set(
-    tasks.filter((t) => !t.is_done && t.company_id).map((t) => t.company_id!)
-  );
-  for (const c of companies) {
-    if (!isActiveCompany(c)) continue;
-    if (c.next_action?.trim() || c.progress_note?.trim()) continue;
-    if (hasOpenTask.has(c.id)) continue;
-    recs.push({
-      id: `no-next-${c.id}`,
-      text: `「${c.name}」の次のアクションが未設定（${c.status}）`,
-      company: c.name,
-      urgency: 20,
+      urgency: d - 0.5 + levelWeight(c.desired_level),
     });
   }
 

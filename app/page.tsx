@@ -8,7 +8,6 @@ import { GeneralEventsSection } from "@/components/dashboard/GeneralEventsSectio
 import { NextActions } from "@/components/dashboard/NextActions";
 import { TodayTomorrowSchedule } from "@/components/dashboard/TodayTomorrowSchedule";
 import { buildRuleRecommendations, type RuleRecommendation } from "@/lib/recommendations";
-import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -38,7 +37,6 @@ export default async function DashboardPage() {
   let todayItems: ScheduleItem[] = [];
   let tomorrowItems: ScheduleItem[] = [];
   let ruleRecs: RuleRecommendation[] = [];
-  const aiEnabled = isGeminiConfigured();
   const today = getTodayString();
   const tomorrow = addDaysToDateString(today, 1);
 
@@ -102,7 +100,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-6">
-        <NextActions rules={ruleRecs} aiEnabled={aiEnabled} />
+        <NextActions rules={ruleRecs} />
       </div>
 
       <div className="mb-6">
