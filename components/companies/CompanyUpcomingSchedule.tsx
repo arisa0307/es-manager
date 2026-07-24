@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { updateCompany } from "@/lib/actions/companies";
 import { deleteCompanyEvent } from "@/lib/actions/company-events";
 import { deleteTask } from "@/lib/actions/tasks";
@@ -20,6 +20,7 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
   const today = new Date().toISOString().split("T")[0];
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [showPast, setShowPast] = useState(false);
 
   const handleDelete = (item: ScheduleItem) => {
     if (!item.deleteId) return;
@@ -43,6 +44,68 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
     });
   };
 
+  // 今日以降と過去に分割。過去は基本畳んでおく。
+  const upcoming = items.filter((item) => item.date >= today);
+  const past = items.filter((item) => item.date < today);
+
+  const renderRow = (item: ScheduleItem) => {
+    const overdue =
+      item.kind === "task" ? isOverdue(item.date, false) : item.date < today;
+    const daysLabel = formatScheduleDaysLabel(item.date, today);
+
+    return (
+      <li
+        key={item.id}
+        className="flex items-stretch gap-1 rounded-lg border border-border bg-card transition-colors hover:bg-muted/30"
+      >
+        <a
+          href={item.href}
+          className="flex min-w-0 flex-1 items-start gap-3 px-3 py-2.5"
+        >
+          <div className="shrink-0 w-20 text-right">
+            <p
+              className={`text-xs font-medium ${
+                overdue ? "text-red-600" : "text-accent"
+              }`}
+            >
+              {daysLabel}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {formatDateFull(item.date)}
+              {item.time && ` ${item.time}`}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              （{formatWeekday(item.date)}）
+            </p>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className={getScheduleColor(item.kind)}>{item.label}</Badge>
+              <span className="text-sm font-medium truncate">{item.title}</span>
+            </div>
+            {item.memo && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                <LinkifiedText text={item.memo} />
+              </p>
+            )}
+          </div>
+        </a>
+        {item.deleteId && (
+          <button
+            type="button"
+            onClick={() => handleDelete(item)}
+            disabled={isPending}
+            aria-label={`${item.title} を削除`}
+            title="削除"
+            className="shrink-0 px-2.5 text-muted-foreground transition-colors hover:text-red-600 disabled:opacity-50"
+          >
+            ✕
+          </button>
+        )}
+      </li>
+    );
+  };
+
   return (
     <Card className="border-accent/30 bg-accent/5 shadow-sm">
       <div className="mb-3">
@@ -57,71 +120,37 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
           予定・期限付きタスクがありません
         </p>
       ) : (
-        <ul className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
-          {items.map((item) => {
-            const overdue =
-              item.kind === "task"
-                ? isOverdue(item.date, false)
-                : item.date < today;
-            const daysLabel = formatScheduleDaysLabel(item.date, today);
-
-            return (
-              <li
-                key={item.id}
-                className="flex items-stretch gap-1 rounded-lg border border-border bg-card transition-colors hover:bg-muted/30"
+        <div className={isPending ? "opacity-60" : ""}>
+          {past.length > 0 && (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => setShowPast((v) => !v)}
+                className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
-                <a
-                  href={item.href}
-                  className="flex min-w-0 flex-1 items-start gap-3 px-3 py-2.5"
+                <span
+                  className={`transition-transform ${showPast ? "rotate-90" : ""}`}
                 >
-                  <div className="shrink-0 w-20 text-right">
-                    <p
-                      className={`text-xs font-medium ${
-                        overdue ? "text-red-600" : "text-accent"
-                      }`}
-                    >
-                      {daysLabel}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {formatDateFull(item.date)}
-                      {item.time && ` ${item.time}`}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      （{formatWeekday(item.date)}）
-                    </p>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge className={getScheduleColor(item.kind)}>
-                        {item.label}
-                      </Badge>
-                      <span className="text-sm font-medium truncate">
-                        {item.title}
-                      </span>
-                    </div>
-                    {item.memo && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        <LinkifiedText text={item.memo} />
-                      </p>
-                    )}
-                  </div>
-                </a>
-                {item.deleteId && (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item)}
-                    disabled={isPending}
-                    aria-label={`${item.title} を削除`}
-                    title="削除"
-                    className="shrink-0 px-2.5 text-muted-foreground transition-colors hover:text-red-600 disabled:opacity-50"
-                  >
-                    ✕
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  ▶
+                </span>
+                過去の予定 {past.length}件を{showPast ? "隠す" : "表示"}
+              </button>
+              {showPast && (
+                <ul className="mt-2 space-y-2 opacity-80">
+                  {past.map(renderRow)}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {upcoming.length > 0 ? (
+            <ul className="space-y-2">{upcoming.map(renderRow)}</ul>
+          ) : (
+            <p className="py-2 text-center text-sm text-muted-foreground">
+              今日以降の予定はありません
+            </p>
+          )}
+        </div>
       )}
     </Card>
   );

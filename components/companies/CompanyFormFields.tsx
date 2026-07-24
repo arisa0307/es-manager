@@ -92,18 +92,6 @@ export function CompanyFormFields({
             </Select>
           </Field>
         </div>
-        <Field label="URL">
-          <div className="space-y-1.5">
-            <Input
-              name="url"
-              type="text"
-              inputMode="url"
-              defaultValue={company?.url ?? ""}
-              placeholder="https://"
-            />
-            {company?.url && <ExternalUrlLink url={company.url} />}
-          </div>
-        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="ステータス">
             <Select name="status" defaultValue={company?.status ?? "未エントリー"}>
@@ -225,8 +213,20 @@ export function CompanyFormFields({
       <section className="space-y-3 rounded-lg border border-border p-3">
         <SectionTitle
           title="ログイン情報"
-          description="マイページ・応募サイトの ID / パスワード"
+          description="マイページ・応募サイトの URL / ID / パスワード"
         />
+        <Field label="マイページ / ログインURL">
+          <div className="space-y-1.5">
+            <Input
+              name="url"
+              type="text"
+              inputMode="url"
+              defaultValue={company?.url ?? ""}
+              placeholder="https://"
+            />
+            {company?.url && <ExternalUrlLink url={company.url} />}
+          </div>
+        </Field>
         <div className="grid sm:grid-cols-2 gap-3">
           <Field label="ID">
             <CopyableInput

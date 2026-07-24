@@ -14,10 +14,6 @@ export function CompanyInfoView({ company }: { company: Company }) {
     {
       title: "基本情報",
       rows: compact([
-        company.url && {
-          label: "URL",
-          node: <ExternalUrlLink url={company.url} />,
-        },
         company.salary && { label: "年収・待遇", node: company.salary },
       ]),
     },
@@ -58,6 +54,10 @@ export function CompanyInfoView({ company }: { company: Company }) {
     {
       title: "ログイン情報",
       rows: compact([
+        company.url && {
+          label: "マイページ",
+          node: <ExternalUrlLink url={company.url} />,
+        },
         company.login_id && {
           label: "ID",
           node: <CopyValue value={company.login_id} mono />,
