@@ -9,7 +9,7 @@ import {
   buildCompanyEventScheduleEntries,
   getCompanyEventScheduleLabel,
 } from "@/lib/company-event-utils";
-import { formatTimeRange } from "@/lib/utils";
+import { formatTimeRange, getTodayString } from "@/lib/utils";
 
 /** 企業詳細用: 締切・日程・タスクを日付の近い順に並べる */
 export function buildCompanyUpcomingSchedule(
@@ -72,9 +72,16 @@ export function buildCompanyUpcomingSchedule(
     general: 3,
   };
 
-  // 過去分も残す（一覧側で折りたたんで表示する）
-  return items.sort((a, b) => {
-    if (a.date !== b.date) return a.date.localeCompare(b.date);
-    return kindOrder[a.kind] - kindOrder[b.kind];
-  });
+  // 締切・タスクは期限切れも見せる(見落とし防止)が、過ぎた企業イベントは要約から外す。
+  const today = getTodayString();
+  return items
+    .filter((item) => {
+      if (item.date >= today) return true;
+      if (item.kind === "company_event") return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return kindOrder[a.kind] - kindOrder[b.kind];
+    });
 }
