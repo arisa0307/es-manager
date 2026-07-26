@@ -216,12 +216,12 @@ export function CompanyEventForm({
           placeholder="URL、場所、服装、持ち物、準備することなど"
         />
       </Field>
-      <Field label="参加後の記録（説明会・インターンの内容）">
+      <Field label="参加後の記録（内容・振り返り）">
         <Textarea
           name="report"
           rows={5}
           defaultValue={event?.report ?? ""}
-          placeholder="聞いた内容、事業・社風、選考フロー、質問したことなど。ここに書いた内容が「記録・メモ」欄にまとまります"
+          placeholder="面接: 聞かれた質問・逆質問・手応え / GD: お題・役割・進め方 / 説明会・インターン: 内容・社風など。ここに書いた内容が「参加後の記録」欄にまとまります"
         />
       </Field>
       {conflicts.length > 0 && (
