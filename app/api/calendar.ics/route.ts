@@ -18,6 +18,7 @@ const COMPANY_EVENT_ICONS: Record<CompanyEventType, string> = {
   internship: "🏢",
   es: "📝",
   web_test: "💻",
+  gd: "🗣️",
   interview: "👥",
   other: "📌",
 };

@@ -41,7 +41,7 @@ export function CompanyEventNotes({ events }: { events: CompanyEvent[] }) {
       <div className="mb-3">
         <h2 className="text-sm font-medium text-foreground">参加後の記録</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          説明会やインターンで聞いた内容だけをまとめています（事前メモは除く）
+          面接・GD・説明会・インターンの内容をまとめています（事前メモは除く）
         </p>
       </div>
 

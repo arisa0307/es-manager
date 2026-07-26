@@ -575,6 +575,8 @@ function getEventTypeColor(type: CompanyEventType): string {
       return "bg-blue-500/10 text-blue-700 dark:text-blue-300";
     case "web_test":
       return "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300";
+    case "gd":
+      return "bg-orange-500/10 text-orange-700 dark:text-orange-300";
     case "interview":
       return "bg-pink-500/10 text-pink-700 dark:text-pink-300";
     case "other":

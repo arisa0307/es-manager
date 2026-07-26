@@ -45,6 +45,7 @@ export const COMPANY_EVENT_TYPES = [
   "internship",
   "es",
   "web_test",
+  "gd",
   "interview",
   "other",
 ] as const;
@@ -55,6 +56,7 @@ export const COMPANY_EVENT_TYPE_LABELS: Record<CompanyEventType, string> = {
   internship: "インターン",
   es: "ES",
   web_test: "Webテスト",
+  gd: "グループディスカッション",
   interview: "面接",
   other: "その他",
 };
