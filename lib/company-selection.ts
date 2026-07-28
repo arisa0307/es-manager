@@ -2,7 +2,7 @@ import {
   COMPANY_EVENT_TYPE_LABELS,
   type CompanyEvent,
   type CompanyEventType,
-  type ES,
+  type ESSubmission,
   type Task,
 } from "@/types";
 
@@ -25,18 +25,18 @@ export type SelectionStep = {
 export function buildCompanySelectionSteps(
   tasks: Task[],
   events: CompanyEvent[],
-  esList: ES[] = []
+  esSubmissions: ESSubmission[] = []
 ): SelectionStep[] {
   const steps: SelectionStep[] = [];
 
-  for (const es of esList) {
-    if (!es.result) continue;
+  for (const sub of esSubmissions) {
+    if (!sub.result) continue;
     steps.push({
-      id: `es-${es.id}`,
-      label: "ES",
-      title: es.question,
-      date: null,
-      result: es.result,
+      id: `es-${sub.id}`,
+      label: `ES(${sub.phase})`,
+      title: sub.title || "ES提出",
+      date: sub.submitted_on ?? null,
+      result: sub.result,
       source: "es",
       href: "#company-es",
     });

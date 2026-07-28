@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteCompany, updateCompany } from "@/lib/actions/companies";
 import { deleteCompanyEvent } from "@/lib/actions/company-events";
-import { deleteES } from "@/lib/actions/es";
 import { deleteTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge } from "@/components/ui/Badge";
 import { LinkifiedText } from "@/components/ui/LinkifiedText";
@@ -27,7 +26,8 @@ import {
   buildCompanyEventScheduleEntries,
   getCompanyEventStatusText,
 } from "@/lib/company-event-utils";
-import { ESForm } from "@/components/es/ESForm";
+import { ESSubmissionForm } from "@/components/es/ESSubmissionForm";
+import { ESSubmissionCard } from "@/components/es/ESSubmissionCard";
 import { TaskForm } from "@/components/tasks/TaskForm";
 import {
   formatEventDateTime,
@@ -39,8 +39,6 @@ import {
   formatDate,
   getTodayString,
   isOverdue,
-  countWords,
-  formatTags,
   formatTimeRange,
 } from "@/lib/utils";
 import {
@@ -49,19 +47,19 @@ import {
   type Company,
   type CompanyEvent,
   type CompanyEventType,
-  type ES,
+  type ESSubmissionWithDetails,
   type Task,
   type TaskPriority,
 } from "@/types";
 
 export function CompanyDetail({
   company,
-  esList,
+  esSubmissions,
   tasks,
   events,
 }: {
   company: Company;
-  esList: ES[];
+  esSubmissions: ESSubmissionWithDetails[];
   tasks: Task[];
   events: CompanyEvent[];
 }) {
@@ -71,14 +69,13 @@ export function CompanyDetail({
   const [showEvent, setShowEvent] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editingEsId, setEditingEsId] = useState<string | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
   const upcomingItems = buildCompanyUpcomingSchedule(company, tasks, events);
-  const selectionSteps = buildCompanySelectionSteps(tasks, events, esList);
+  const selectionSteps = buildCompanySelectionSteps(tasks, events, esSubmissions);
   // 次のアクション未入力時に自動表示する、今日以降で最も近い予定
   const todayString = getTodayString();
   const nextUpcoming = upcomingItems.find((item) => item.date >= todayString);
@@ -126,11 +123,6 @@ export function CompanyDetail({
   const handleDeleteTask = (id: string, title: string) => {
     if (!confirm(`タスク「${title}」を削除しますか？`)) return;
     startTransition(() => deleteTask(id));
-  };
-
-  const handleDeleteES = (id: string) => {
-    if (!confirm("このESを削除しますか？")) return;
-    startTransition(() => deleteES(id));
   };
 
   return (
@@ -414,13 +406,16 @@ export function CompanyDetail({
           title="ES"
           action={
             <Button size="sm" onClick={() => setShowES(!showES)}>
-              {showES ? "閉じる" : "+ 追加"}
+              {showES ? "閉じる" : "+ ES提出"}
             </Button>
           }
         />
+        <p className="-mt-2 mb-3 text-xs text-muted-foreground">
+          インターン用・本選考用など「提出」ごとに作り、設問・結果・PDFをまとめます
+        </p>
         {showES && (
           <div className="mb-4 pb-4 border-b border-border">
-            <ESForm
+            <ESSubmissionForm
               companies={[{ id: company.id, name: company.name }]}
               defaultCompanyId={company.id}
               onSuccess={() => setShowES(false)}
@@ -428,81 +423,17 @@ export function CompanyDetail({
             />
           </div>
         )}
-        {esList.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">ESがありません</p>
+        {esSubmissions.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">ES提出がありません</p>
         ) : (
-          <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
-            {esList.map((es) => {
-              if (editingEsId === es.id) {
-                return (
-                  <div
-                    key={es.id}
-                    className="rounded-lg border border-border bg-muted/20 px-3 py-2.5"
-                  >
-                    <ESForm
-                      companies={[{ id: company.id, name: company.name }]}
-                      defaultCompanyId={company.id}
-                      es={es}
-                      onSuccess={() => setEditingEsId(null)}
-                      onCancel={() => setEditingEsId(null)}
-                    />
-                  </div>
-                );
-              }
-              const words = countWords(es.answer);
-              const over = es.word_count !== null && words > es.word_count;
-              return (
-                <div key={es.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="min-w-0 text-sm font-medium">{es.question}</p>
-                    <div className="flex shrink-0 gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowES(false);
-                          setEditingEsId(es.id);
-                        }}
-                      >
-                        編集
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDeleteES(es.id)}
-                        disabled={isPending}
-                      >
-                        削除
-                      </Button>
-                    </div>
-                  </div>
-                  {es.tags && es.tags.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">{formatTags(es.tags)}</p>
-                  )}
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Badge
-                      className={over ? "bg-red-500/10 text-red-600" : "bg-muted text-muted-foreground"}
-                    >
-                      {words}
-                      {es.word_count !== null && ` / ${es.word_count}`} 文字
-                    </Badge>
-                    {es.result && (
-                      <Badge className={getSelectionResultColor(es.result)}>
-                        {es.result}
-                      </Badge>
-                    )}
-                  </div>
-                  {es.base_es && (
-                    <p className="text-xs text-muted-foreground mt-1">ベース: {es.base_es}</p>
-                  )}
-                  {es.answer && (
-                    <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">
-                      {es.answer}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+          <div className="space-y-3">
+            {esSubmissions.map((s) => (
+              <ESSubmissionCard
+                key={s.id}
+                submission={s}
+                companies={[{ id: company.id, name: company.name }]}
+              />
+            ))}
           </div>
         )}
       </Card>

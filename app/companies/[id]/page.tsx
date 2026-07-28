@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCompany } from "@/lib/actions/companies";
-import { getESByCompany } from "@/lib/actions/es";
+import { getESSubmissions } from "@/lib/actions/es";
 import { getTasks } from "@/lib/actions/tasks";
 import { getCompanyEvents } from "@/lib/actions/company-events";
 import { CompanyDetail } from "@/components/companies/CompanyDetail";
@@ -15,14 +15,14 @@ export default async function CompanyDetailPage({
 }) {
   const { id } = await params;
   let company: Awaited<ReturnType<typeof getCompany>>;
-  let esList: Awaited<ReturnType<typeof getESByCompany>>;
+  let esSubmissions: Awaited<ReturnType<typeof getESSubmissions>>;
   let tasks: Awaited<ReturnType<typeof getTasks>>;
   let events: Awaited<ReturnType<typeof getCompanyEvents>>;
 
   try {
-    [company, esList, tasks, events] = await Promise.all([
+    [company, esSubmissions, tasks, events] = await Promise.all([
       getCompany(id),
-      getESByCompany(id),
+      getESSubmissions(id),
       getTasks({ companyId: id }),
       getCompanyEvents(id),
     ]);
@@ -38,7 +38,7 @@ export default async function CompanyDetailPage({
   return (
     <CompanyDetail
       company={company}
-      esList={esList}
+      esSubmissions={esSubmissions}
       tasks={tasks}
       events={events}
     />
