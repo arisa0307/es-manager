@@ -4,8 +4,10 @@ import { getCompanies } from "@/lib/actions/companies";
 import { getGeneralEvents } from "@/lib/actions/general-events";
 import { getScheduleForDates } from "@/lib/actions/schedule";
 import { getTaskStats, getTasks } from "@/lib/actions/tasks";
+import { getSelectionFunnelStats, type SelectionStats } from "@/lib/actions/stats";
 import { GeneralEventsSection } from "@/components/dashboard/GeneralEventsSection";
 import { NextActions } from "@/components/dashboard/NextActions";
+import { SelectionFunnel } from "@/components/dashboard/SelectionFunnel";
 import { TodayTomorrowSchedule } from "@/components/dashboard/TodayTomorrowSchedule";
 import { buildRuleRecommendations, type RuleRecommendation } from "@/lib/recommendations";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -37,19 +39,21 @@ export default async function DashboardPage() {
   let todayItems: ScheduleItem[] = [];
   let tomorrowItems: ScheduleItem[] = [];
   let ruleRecs: RuleRecommendation[] = [];
+  let funnelStats: SelectionStats = { stages: [], internshipAttended: 0 };
   const today = getTodayString();
   const tomorrow = addDaysToDateString(today, 1);
 
   try {
     await claimOrphanedUserData();
     let scheduleItems: ScheduleItem[] = [];
-    [taskStats, companies, tasks, generalEvents, scheduleItems] =
+    [taskStats, companies, tasks, generalEvents, scheduleItems, funnelStats] =
       await Promise.all([
       getTaskStats(),
       getCompanies({ sort: "deadline", order: "asc" }),
       getTasks({ isDone: false }),
       getGeneralEvents(),
       getScheduleForDates([today, tomorrow]),
+      getSelectionFunnelStats(),
     ]);
     // 既に全企業を取得しているので、別クエリを投げず取得済みデータから集計する。
     companyStats = { total: companies.length, byStatus: {}, byLevel: {}, byResult: {} };
@@ -92,15 +96,20 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <Stat label="企業" value={companyStats.total} />
         <Stat label="未完了タスク" value={taskStats.pending} />
         <Stat label="完了" value={taskStats.completed} />
         <Stat label="持ち駒" value={activeCompaniesCount} />
+        <Stat label="インターン参加" value={funnelStats.internshipAttended} />
       </div>
 
       <div className="mb-6">
         <NextActions rules={ruleRecs} />
+      </div>
+
+      <div className="mb-6">
+        <SelectionFunnel stats={funnelStats.stages} />
       </div>
 
       <div className="mb-6">
