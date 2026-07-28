@@ -14,6 +14,8 @@ export type SelectionStats = {
   stages: StageStat[];
   /** 参加済み(開催日が今日以前)のインターン数 */
   internshipAttended: number;
+  /** 参加予定(開催日が今日より後)のインターン数 */
+  internshipUpcoming: number;
 };
 
 const STAGES = ["ES", "適性試験", "GD", "面接"] as const;
@@ -66,15 +68,21 @@ export async function getSelectionFunnelStats(): Promise<SelectionStats> {
 
   const today = getTodayString();
   let internshipAttended = 0;
+  let internshipUpcoming = 0;
 
   for (const r of esRes.data ?? []) add("ES", r.result);
   for (const e of eventRes.data ?? []) {
     add(EVENT_TYPE_TO_STAGE[e.type], e.result);
-    if (e.type === "internship" && e.event_date && e.event_date <= today) {
-      internshipAttended++;
+    if (e.type === "internship" && e.event_date) {
+      if (e.event_date <= today) internshipAttended++;
+      else internshipUpcoming++;
     }
   }
   for (const t of taskRes.data ?? []) add(classifyTaskStage(t.title ?? ""), t.result);
 
-  return { stages: STAGES.map((s) => stat[s]), internshipAttended };
+  return {
+    stages: STAGES.map((s) => stat[s]),
+    internshipAttended,
+    internshipUpcoming,
+  };
 }
