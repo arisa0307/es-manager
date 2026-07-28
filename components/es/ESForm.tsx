@@ -7,25 +7,36 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { countWords, parseTags } from "@/lib/utils";
-import { SELECTION_RESULTS, type Company, type ES } from "@/types";
+import type { ES } from "@/types";
 
+/**
+ * ES提出にぶら下がる「設問」1件のフォーム。
+ * 通過可否は提出単位で持つため、ここには結果欄は無い。
+ */
 export function ESForm({
-  companies,
+  companyId,
+  submissionId,
   es,
-  defaultCompanyId,
   templates = [],
   onSuccess,
   onCancel,
 }: {
-  companies: Pick<Company, "id" | "name">[];
+  companyId: string;
+  submissionId: string;
   es?: ES;
-  defaultCompanyId?: string;
-  templates?: { id: string; title: string; question: string; answer: string | null; word_count: number | null }[];
+  templates?: {
+    id: string;
+    title: string;
+    question: string;
+    answer: string | null;
+    word_count: number | null;
+  }[];
   onSuccess?: () => void;
   onCancel?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [question, setQuestion] = useState(es?.question ?? "");
   const [answer, setAnswer] = useState(es?.answer ?? "");
   const [wordCount, setWordCount] = useState(es?.word_count?.toString() ?? "");
   const [tags, setTags] = useState(es?.tags?.join(", ") ?? "");
@@ -34,10 +45,7 @@ export function ESForm({
   const applyTemplate = (templateId: string) => {
     const t = templates.find((x) => x.id === templateId);
     if (!t) return;
-    const form = document.querySelector("form");
-    if (!form) return;
-    const q = form.querySelector('[name="question"]') as HTMLTextAreaElement;
-    if (q) q.value = t.question;
+    setQuestion(t.question);
     setAnswer(t.answer ?? "");
     setWordCount(t.word_count?.toString() ?? "");
     setBaseEs(t.title);
@@ -45,30 +53,19 @@ export function ESForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
     const data = {
-      company_id: (form.get("company_id") as string) || defaultCompanyId!,
-      question: form.get("question") as string,
+      question,
       answer: answer || null,
       word_count: wordCount ? parseInt(wordCount, 10) : null,
       tags: parseTags(tags),
       base_es: baseEs || null,
-      result: (form.get("result") as string) || null,
     };
-
     startTransition(async () => {
       try {
         if (es) {
-          await updateES(es.id, {
-            question: data.question,
-            answer: data.answer,
-            word_count: data.word_count,
-            tags: data.tags,
-            base_es: data.base_es,
-            result: data.result,
-          });
+          await updateES(es.id, data);
         } else {
-          await createES(data);
+          await createES({ company_id: companyId, submission_id: submissionId, ...data });
         }
         onSuccess?.();
       } catch (err) {
@@ -105,25 +102,14 @@ export function ESForm({
         </div>
       )}
 
-      {!es && !defaultCompanyId && (
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">企業 *</label>
-          <Select name="company_id" required defaultValue={defaultCompanyId ?? ""}>
-            <option value="" disabled>
-              選択
-            </option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-      )}
-
       <div>
         <label className="block text-xs text-muted-foreground mb-1">設問 *</label>
-        <Textarea name="question" required defaultValue={es?.question} rows={2} />
+        <Textarea
+          required
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          rows={2}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -146,31 +132,21 @@ export function ESForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">ベースES</label>
-          <Input
-            value={baseEs}
-            onChange={(e) => setBaseEs(e.target.value)}
-            placeholder="テンプレ名など"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">選考結果</label>
-          <Select name="result" defaultValue={es?.result ?? ""}>
-            {SELECTION_RESULTS.map((r) => (
-              <option key={r} value={r}>
-                {r || "—"}
-              </option>
-            ))}
-          </Select>
-        </div>
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">ベースES</label>
+        <Input
+          value={baseEs}
+          onChange={(e) => setBaseEs(e.target.value)}
+          placeholder="テンプレ名など"
+        />
       </div>
 
       <div>
         <div className="flex justify-between mb-1">
           <label className="text-xs text-muted-foreground">回答</label>
-          <span className={`text-xs ${isOver ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+          <span
+            className={`text-xs ${isOver ? "text-red-600 font-medium" : "text-muted-foreground"}`}
+          >
             {words}
             {limit !== null && ` / ${limit}`} 文字
           </span>
@@ -180,7 +156,7 @@ export function ESForm({
 
       <div className="flex gap-2">
         <Button type="submit" disabled={isPending}>
-          {isPending ? "保存中..." : es ? "更新" : "登録"}
+          {isPending ? "保存中..." : es ? "更新" : "設問を追加"}
         </Button>
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel}>

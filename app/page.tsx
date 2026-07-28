@@ -5,8 +5,10 @@ import { getGeneralEvents } from "@/lib/actions/general-events";
 import { getScheduleForDates } from "@/lib/actions/schedule";
 import { getTaskStats, getTasks } from "@/lib/actions/tasks";
 import { getSelectionFunnelStats, type SelectionStats } from "@/lib/actions/stats";
+import { getPendingResults, type PendingResult } from "@/lib/actions/pending";
 import { GeneralEventsSection } from "@/components/dashboard/GeneralEventsSection";
 import { NextActions } from "@/components/dashboard/NextActions";
+import { PendingResults } from "@/components/dashboard/PendingResults";
 import { SelectionFunnel } from "@/components/dashboard/SelectionFunnel";
 import { TodayTomorrowSchedule } from "@/components/dashboard/TodayTomorrowSchedule";
 import { buildRuleRecommendations, type RuleRecommendation } from "@/lib/recommendations";
@@ -44,13 +46,14 @@ export default async function DashboardPage() {
     internshipAttended: 0,
     internshipUpcoming: 0,
   };
+  let pendingResults: PendingResult[] = [];
   const today = getTodayString();
   const tomorrow = addDaysToDateString(today, 1);
 
   try {
     await claimOrphanedUserData();
     let scheduleItems: ScheduleItem[] = [];
-    [taskStats, companies, tasks, generalEvents, scheduleItems, funnelStats] =
+    [taskStats, companies, tasks, generalEvents, scheduleItems, funnelStats, pendingResults] =
       await Promise.all([
       getTaskStats(),
       getCompanies({ sort: "deadline", order: "asc" }),
@@ -58,6 +61,7 @@ export default async function DashboardPage() {
       getGeneralEvents(),
       getScheduleForDates([today, tomorrow]),
       getSelectionFunnelStats(),
+      getPendingResults(),
     ]);
     // 既に全企業を取得しているので、別クエリを投げず取得済みデータから集計する。
     companyStats = { total: companies.length, byStatus: {}, byLevel: {}, byResult: {} };
@@ -111,6 +115,10 @@ export default async function DashboardPage() {
 
       <div className="mb-6">
         <NextActions rules={ruleRecs} />
+      </div>
+
+      <div className="mb-6">
+        <PendingResults items={pendingResults} />
       </div>
 
       <div className="mb-6">

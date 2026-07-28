@@ -119,15 +119,57 @@ export type Company = {
 export type ES = {
   id: string;
   company_id: string;
+  /** 所属するES提出(応募)。1提出に複数設問がぶら下がる。 */
+  submission_id: string | null;
   question: string;
   answer: string | null;
   word_count: number | null;
   tags: string[] | null;
   base_es: string | null;
-  /** 提出したESの通過可否 */
+  /** 旧: 設問ごとの通過可否。現在は提出単位(es_submissions.result)で管理。 */
   result?: string | null;
   created_at: string;
   updated_at: string;
+};
+
+/** ES提出(応募)の種別 */
+export const ES_PHASES = ["インターン", "本選考", "その他"] as const;
+export type EsPhase = (typeof ES_PHASES)[number];
+
+/**
+ * ES提出(応募)= 通過可否・添付・種別を持つ単位。設問(ES)はこの下にぶら下がる。
+ * 同じ企業でインターン用・本選考用など複数の提出を持てる。
+ */
+export type ESSubmission = {
+  id: string;
+  company_id: string;
+  phase: EsPhase;
+  title: string | null;
+  result: string | null;
+  submitted_on: string | null;
+  file_path: string | null;
+  file_name: string | null;
+  memo: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ESSubmissionInsert = {
+  company_id: string;
+  phase?: EsPhase;
+  title?: string | null;
+  result?: string | null;
+  submitted_on?: string | null;
+  file_path?: string | null;
+  file_name?: string | null;
+  memo?: string | null;
+};
+
+export type ESSubmissionUpdate = Partial<Omit<ESSubmissionInsert, "company_id">>;
+
+export type ESSubmissionWithDetails = ESSubmission & {
+  companies: Pick<Company, "id" | "name"> | null;
+  es: ES[];
 };
 
 export type Task = {
@@ -214,12 +256,12 @@ export type CompanyUpdate = Partial<CompanyInsert>;
 
 export type ESInsert = {
   company_id: string;
+  submission_id: string;
   question: string;
   answer?: string | null;
   word_count?: number | null;
   tags?: string[] | null;
   base_es?: string | null;
-  result?: string | null;
 };
 
 export type ESUpdate = Partial<Omit<ESInsert, "company_id">>;

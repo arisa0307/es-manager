@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import { getCompanies } from "@/lib/actions/companies";
-import { getESList } from "@/lib/actions/es";
+import { getESSubmissions } from "@/lib/actions/es";
 import { getTemplates } from "@/lib/actions/templates";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ESFilters } from "@/components/es/ESFilters";
 import { ESList } from "@/components/es/ESList";
 import { Card } from "@/components/ui/Card";
+import type { ESSubmissionWithDetails } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +16,14 @@ export default async function ESPage({
   searchParams: Promise<{ q?: string; company?: string }>;
 }) {
   const params = await searchParams;
-  let items: Awaited<ReturnType<typeof getESList>> = [];
+  let submissions: ESSubmissionWithDetails[] = [];
   let companies: Awaited<ReturnType<typeof getCompanies>> = [];
   let templates: Awaited<ReturnType<typeof getTemplates>> = [];
   let error: string | null = null;
 
   try {
-    [items, companies, templates] = await Promise.all([
-      getESList(params.q, params.company),
+    [submissions, companies, templates] = await Promise.all([
+      getESSubmissions(params.company),
       getCompanies(),
       getTemplates(),
     ]);
@@ -30,9 +31,33 @@ export default async function ESPage({
     error = e instanceof Error ? e.message : "取得に失敗しました";
   }
 
+  const q = params.q?.trim().toLowerCase();
+  if (q) {
+    submissions = submissions.filter((s) => {
+      const hay = [
+        s.companies?.name,
+        s.title,
+        s.phase,
+        ...(s.es ?? []).flatMap((e) => [e.question, e.answer]),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  const questionCount = submissions.reduce(
+    (n, s) => n + (s.es?.length ?? 0),
+    0
+  );
+
   return (
     <>
-      <PageHeader title="ES管理" description={`${items.length} 件`} />
+      <PageHeader
+        title="ES管理"
+        description={`${submissions.length} 提出 ・ ${questionCount} 設問`}
+      />
       <Suspense>
         <ESFilters companies={companies} />
       </Suspense>
@@ -41,7 +66,11 @@ export default async function ESPage({
           <p className="text-sm text-red-600">{error}</p>
         </Card>
       ) : (
-        <ESList items={items} companies={companies} templates={templates} />
+        <ESList
+          submissions={submissions}
+          companies={companies}
+          templates={templates}
+        />
       )}
     </>
   );
