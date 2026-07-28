@@ -39,7 +39,11 @@ export default async function DashboardPage() {
   let todayItems: ScheduleItem[] = [];
   let tomorrowItems: ScheduleItem[] = [];
   let ruleRecs: RuleRecommendation[] = [];
-  let funnelStats: SelectionStats = { stages: [], internshipAttended: 0 };
+  let funnelStats: SelectionStats = {
+    stages: [],
+    internshipAttended: 0,
+    internshipUpcoming: 0,
+  };
   const today = getTodayString();
   const tomorrow = addDaysToDateString(today, 1);
 
@@ -96,12 +100,13 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <Stat label="企業" value={companyStats.total} />
         <Stat label="未完了タスク" value={taskStats.pending} />
         <Stat label="完了" value={taskStats.completed} />
         <Stat label="持ち駒" value={activeCompaniesCount} />
         <Stat label="インターン参加" value={funnelStats.internshipAttended} />
+        <Stat label="インターン予定" value={funnelStats.internshipUpcoming} />
       </div>
 
       <div className="mb-6">
