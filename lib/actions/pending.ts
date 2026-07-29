@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isActiveCompany } from "@/lib/utils";
 import {
   COMPANY_EVENT_TYPE_LABELS,
   type CompanyEventType,
@@ -15,8 +14,6 @@ export type PendingResult = {
   companyId: string | null;
   date: string | null;
   href: string;
-  /** waiting: 明示的に結果待ち / unrecorded: 進捗未記入で確認が必要 */
-  kind: "waiting" | "unrecorded";
 };
 
 type Joined = { name: string } | { name: string }[] | null;
@@ -31,7 +28,7 @@ function companyName(c: Joined): string | null {
  */
 export async function getPendingResults(): Promise<PendingResult[]> {
   const supabase = await createClient();
-  const [esRes, eventRes, taskRes, companyRes] = await Promise.all([
+  const [esRes, eventRes, taskRes] = await Promise.all([
     supabase
       .from("es_submissions")
       .select("id, title, phase, company_id, submitted_on, result, companies(name)")
@@ -44,9 +41,6 @@ export async function getPendingResults(): Promise<PendingResult[]> {
       .from("tasks")
       .select("id, title, deadline, company_id, result, companies(name)")
       .eq("result", "結果待ち"),
-    supabase
-      .from("companies")
-      .select("id, name, status, result, progress_note, next_action"),
   ]);
 
   const items: PendingResult[] = [];
@@ -60,7 +54,6 @@ export async function getPendingResults(): Promise<PendingResult[]> {
       companyId: e.company_id,
       date: e.submitted_on ?? null,
       href: e.company_id ? `/companies/${e.company_id}#company-es` : "/es",
-      kind: "waiting",
     });
   }
   for (const ev of eventRes.data ?? []) {
@@ -74,7 +67,6 @@ export async function getPendingResults(): Promise<PendingResult[]> {
       href: ev.company_id
         ? `/companies/${ev.company_id}#company-events`
         : "/calendar",
-      kind: "waiting",
     });
   }
   for (const t of taskRes.data ?? []) {
@@ -86,35 +78,11 @@ export async function getPendingResults(): Promise<PendingResult[]> {
       companyId: t.company_id,
       date: t.deadline ?? null,
       href: t.company_id ? `/companies/${t.company_id}#company-tasks` : "/tasks",
-      kind: "waiting",
     });
   }
 
-  // 進捗未記入の確認候補: 選考中で、進捗も次アクションも未記入、かつ
-  // 既に上の明示的な結果待ちに載っていない企業。
-  const coveredCompanyIds = new Set(
-    items.map((i) => i.companyId).filter(Boolean)
-  );
-  for (const c of companyRes.data ?? []) {
-    if (!isActiveCompany(c)) continue;
-    if (c.progress_note?.trim() || c.next_action?.trim()) continue;
-    if (coveredCompanyIds.has(c.id)) continue;
-    items.push({
-      id: `company-${c.id}`,
-      label: "状況未記入",
-      title: `${c.status}（進捗の記録なし）`,
-      company: c.name,
-      companyId: c.id,
-      date: null,
-      href: `/companies/${c.id}`,
-      kind: "unrecorded",
-    });
-  }
-
-  // 明示的な結果待ちを先に、未記入は後ろに。各群は日付の古い順（日付なしは末尾）。
-  const order = { waiting: 0, unrecorded: 1 };
+  // 日付があるものは古い順（待って長いほど結果が出ている可能性が高い）、日付なしは末尾。
   return items.sort((a, b) => {
-    if (a.kind !== b.kind) return order[a.kind] - order[b.kind];
     if (a.date && b.date) return a.date.localeCompare(b.date);
     if (a.date) return -1;
     if (b.date) return 1;
