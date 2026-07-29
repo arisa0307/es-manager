@@ -18,13 +18,13 @@ export function PendingResults({ items }: { items: PendingResult[] }) {
           )}
         </h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          結果が出たらタップして「通過／不通過」に更新。進捗未記入の企業も確認候補として表示します
+          結果が出たらタップして「通過／不通過」に更新してください
         </p>
       </div>
 
       {items.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">
-          結果待ち・未確認の選考はありません。
+          結果待ちはありません。
         </p>
       ) : (
         <ul className="space-y-1.5">
@@ -34,13 +34,7 @@ export function PendingResults({ items }: { items: PendingResult[] }) {
                 href={item.href}
                 className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/20 px-3 py-2 transition-colors hover:bg-muted/40"
               >
-                <Badge
-                  className={
-                    item.kind === "unrecorded"
-                      ? "shrink-0 bg-muted text-muted-foreground"
-                      : "shrink-0 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                  }
-                >
+                <Badge className="shrink-0 bg-amber-500/10 text-amber-700 dark:text-amber-300">
                   {item.label}
                 </Badge>
                 <span className="min-w-0 flex-1 truncate text-sm">
