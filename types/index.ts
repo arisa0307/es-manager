@@ -172,6 +172,10 @@ export type ESSubmissionWithDetails = ESSubmission & {
   es: ES[];
 };
 
+/** タスクを選考ステップとして集計に含めるための種別(ESは提出で管理するため対象外) */
+export const TASK_STAGES = ["適性試験", "GD", "面接"] as const;
+export type TaskStage = (typeof TASK_STAGES)[number];
+
 export type Task = {
   id: string;
   company_id: string | null;
@@ -180,8 +184,10 @@ export type Task = {
   priority: TaskPriority;
   is_done: boolean;
   memo: string | null;
-  /** ES・AI面接など、日付未定でタスク管理する選考ステップの通過可否 */
+  /** 日付未定でタスク管理する選考ステップの通過可否 */
   result?: string | null;
+  /** 適性試験/GD/面接 のどれか。設定すると通過率の集計に含まれる。 */
+  stage?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -274,6 +280,7 @@ export type TaskInsert = {
   is_done?: boolean;
   memo?: string | null;
   result?: string | null;
+  stage?: string | null;
 };
 
 export type TaskUpdate = Partial<TaskInsert>;

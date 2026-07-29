@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { SELECTION_RESULTS, TASK_PRIORITIES, TASK_PRIORITY_LABELS, type Company, type Task, type TaskPriority } from "@/types";
+import { SELECTION_RESULTS, TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_STAGES, type Company, type Task, type TaskPriority } from "@/types";
 
 export function TaskForm({
   companies,
@@ -34,6 +34,7 @@ export function TaskForm({
       deadline: (form.get("deadline") as string) || null,
       priority: form.get("priority") as TaskPriority,
       result: (form.get("result") as string) || null,
+      stage: (form.get("stage") as string) || null,
       company_id: (form.get("company_id") as string) || defaultCompanyId || null,
     };
 
@@ -82,16 +83,32 @@ export function TaskForm({
           </Select>
         </div>
       </div>
-      <div>
-        <label className="block text-xs text-muted-foreground mb-1">
-          選考結果（ES・AI面接など。日程が未定でもここに記録できます）
-        </label>
-        <Select name="result" defaultValue={task?.result ?? ""}>
-          {SELECTION_RESULTS.map((r) => (
-            <option key={r} value={r}>{r || "—"}</option>
-          ))}
-        </Select>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">
+            選考種別
+          </label>
+          <Select name="stage" defaultValue={task?.stage ?? ""}>
+            <option value="">—（通常タスク）</option>
+            {TASK_STAGES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">
+            選考結果
+          </label>
+          <Select name="result" defaultValue={task?.result ?? ""}>
+            {SELECTION_RESULTS.map((r) => (
+              <option key={r} value={r}>{r || "—"}</option>
+            ))}
+          </Select>
+        </div>
       </div>
+      <p className="-mt-1 text-xs text-muted-foreground">
+        SPI等の適性試験・GD・面接をタスク管理する場合、選考種別を設定すると通過率に反映されます
+      </p>
       <div>
         <label className="block text-xs text-muted-foreground mb-1">メモ</label>
         <Textarea name="memo" rows={2} defaultValue={task?.memo ?? ""} />
