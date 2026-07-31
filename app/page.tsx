@@ -43,6 +43,7 @@ export default async function DashboardPage() {
   let ruleRecs: RuleRecommendation[] = [];
   let funnelStats: SelectionStats = {
     stages: [],
+    interviewRounds: [],
     internshipAttended: 0,
     internshipUpcoming: 0,
   };
@@ -122,7 +123,10 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-6">
-        <SelectionFunnel stats={funnelStats.stages} />
+        <SelectionFunnel
+          stats={funnelStats.stages}
+          interviewRounds={funnelStats.interviewRounds}
+        />
       </div>
 
       <div className="mb-6">
