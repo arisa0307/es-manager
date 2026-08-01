@@ -16,6 +16,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   SELECTION_RESULTS,
+  INTERVIEW_ROUND_OPTIONS,
   COMPANY_EVENT_TYPES,
   COMPANY_EVENT_TYPE_LABELS,
   EVENT_SCHEDULE_STATUSES,
@@ -49,6 +50,7 @@ export function CompanyEventForm({
   const [candidateSlots, setCandidateSlots] = useState<CompanyEventCandidateSlot[]>(
     normalizeCandidateSlots(event?.candidate_slots)
   );
+  const [type, setType] = useState<CompanyEventType>(event?.type ?? "interview");
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,10 +73,14 @@ export function CompanyEventForm({
       )}
       <div className="grid grid-cols-2 gap-3">
         <Field label="種類">
-          <Select name="type" defaultValue={event?.type ?? "interview"}>
-            {COMPANY_EVENT_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {COMPANY_EVENT_TYPE_LABELS[type]}
+          <Select
+            name="type"
+            value={type}
+            onChange={(e) => setType(e.target.value as CompanyEventType)}
+          >
+            {COMPANY_EVENT_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {COMPANY_EVENT_TYPE_LABELS[t]}
               </option>
             ))}
           </Select>
@@ -101,6 +107,18 @@ export function CompanyEventForm({
           placeholder="例: 1次面接 / 1dayインターン"
         />
       </Field>
+      {type === "interview" && (
+        <Field label="面接ラウンド">
+          <Select name="interview_round" defaultValue={event?.interview_round ?? ""}>
+            <option value="">未設定</option>
+            {INTERVIEW_ROUND_OPTIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
       {scheduleStatus === "undecided" ? (
         <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
           日程未定として保存します。候補日があれば下で複数追加できます。
@@ -307,6 +325,10 @@ export function CompanyEventForm({
       memo: (form.get("memo") as string) || null,
       report: (form.get("report") as string) || null,
       result: (form.get("result") as string) || null,
+      interview_round:
+        (form.get("type") as string) === "interview"
+          ? (form.get("interview_round") as string) || null
+          : null,
     };
 
     startTransition(async () => {

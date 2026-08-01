@@ -564,7 +564,9 @@ function EventCard({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={getEventTypeColor(event.type)}>
-                {COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType]}
+                {event.type === "interview" && event.interview_round
+                  ? event.interview_round
+                  : COMPANY_EVENT_TYPE_LABELS[event.type as CompanyEventType]}
               </Badge>
               <p className="text-sm font-medium">{event.title}</p>
               {event.result && (
