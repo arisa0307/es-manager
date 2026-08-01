@@ -3,11 +3,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { getTodayString } from "@/lib/utils";
 
+export type StageDetail = {
+  company: string;
+  result: string;
+};
+
 export type StageStat = {
   stage: string;
   passed: number;
   failed: number;
   waiting: number;
+  /** 各結果に該当する企業名(クリックで内訳表示するため) */
+  entries: StageDetail[];
 };
 
 export type SelectionStats = {
@@ -48,6 +55,13 @@ function classifyInterviewRound(title: string): (typeof INTERVIEW_ROUNDS)[number
   return "その他面接";
 }
 
+type Joined = { name: string } | { name: string }[] | null;
+function companyName(c: Joined): string {
+  if (!c) return "（企業なし）";
+  const n = Array.isArray(c) ? c[0]?.name : c.name;
+  return n ?? "（企業なし）";
+}
+
 /**
  * 選考ステップごとの通過状況を集計する。集計元は、種別が明示されたもののみ:
  * ES=ES提出 / 適性試験・GD・面接=予定(イベントの種類)＋タスク(選考種別を設定したもの)。
@@ -56,48 +70,64 @@ function classifyInterviewRound(title: string): (typeof INTERVIEW_ROUNDS)[number
 export async function getSelectionFunnelStats(): Promise<SelectionStats> {
   const supabase = await createClient();
   const [esRes, eventRes, taskRes] = await Promise.all([
-    supabase.from("es_submissions").select("result"),
+    supabase.from("es_submissions").select("result, companies(name)"),
     supabase
       .from("company_events")
-      .select("type, result, event_date, title, interview_round"),
-    supabase.from("tasks").select("stage, result, title"),
+      .select("type, result, event_date, title, interview_round, companies(name)"),
+    supabase.from("tasks").select("stage, result, title, companies(name)"),
   ]);
 
+  const blank = (stage: string): StageStat => ({
+    stage,
+    passed: 0,
+    failed: 0,
+    waiting: 0,
+    entries: [],
+  });
   const stat: Record<string, StageStat> = Object.fromEntries(
-    STAGES.map((s) => [s, { stage: s, passed: 0, failed: 0, waiting: 0 }])
+    STAGES.map((s) => [s, blank(s)])
   );
   const rounds: Record<string, StageStat> = Object.fromEntries(
-    INTERVIEW_ROUNDS.map((s) => [s, { stage: s, passed: 0, failed: 0, waiting: 0 }])
+    INTERVIEW_ROUNDS.map((s) => [s, blank(s)])
   );
 
-  const bump = (target: StageStat | undefined, result: string | null) => {
+  const record = (
+    target: StageStat | undefined,
+    result: string | null,
+    company: string
+  ) => {
     if (!target || !result) return;
     if (result === "通過") target.passed++;
     else if (result === "不通過") target.failed++;
     else if (result === "結果待ち") target.waiting++;
+    else return;
+    target.entries.push({ company, result });
   };
 
   const today = getTodayString();
   let internshipAttended = 0;
   let internshipUpcoming = 0;
 
-  for (const r of esRes.data ?? []) bump(stat["ES"], r.result);
+  for (const r of esRes.data ?? []) {
+    record(stat["ES"], r.result, companyName(r.companies as Joined));
+  }
   for (const e of eventRes.data ?? []) {
-    bump(stat[EVENT_TYPE_TO_STAGE[e.type] ?? ""], e.result);
+    const name = companyName(e.companies as Joined);
+    record(stat[EVENT_TYPE_TO_STAGE[e.type] ?? ""], e.result, name);
     if (e.type === "interview") {
-      // 明示ラウンドがあれば優先、無ければタイトルから推定
       const round = e.interview_round || classifyInterviewRound(e.title);
-      bump(rounds[round], e.result);
+      record(rounds[round], e.result, name);
     }
     if (e.type === "internship" && e.event_date) {
       if (e.event_date <= today) internshipAttended++;
       else internshipUpcoming++;
     }
   }
-  // 選考種別を設定したタスク(SPI等の適性試験・GD・面接)も反映する
   for (const t of taskRes.data ?? []) {
-    bump(stat[t.stage ?? ""], t.result);
-    if (t.stage === "面接") bump(rounds[classifyInterviewRound(t.title ?? "")], t.result);
+    const name = companyName(t.companies as Joined);
+    record(stat[t.stage ?? ""], t.result, name);
+    if (t.stage === "面接")
+      record(rounds[classifyInterviewRound(t.title ?? "")], t.result, name);
   }
 
   return {

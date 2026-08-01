@@ -11,7 +11,7 @@ function toRow(s: StageStat): Row {
 function StatBar({ row, small = false }: { row: Row; small?: boolean }) {
   const pct = row.rate === null ? null : Math.round(row.rate * 100);
   return (
-    <div>
+    <div className="flex-1">
       <div className="mb-1 flex items-center justify-between text-xs">
         <span className={small ? "text-muted-foreground" : "font-medium text-foreground"}>
           {row.stage}
@@ -39,6 +39,34 @@ function StatBar({ row, small = false }: { row: Row; small?: boolean }) {
   );
 }
 
+const RESULT_GROUPS: { key: string; label: string; className: string }[] = [
+  { key: "通過", label: "通過", className: "text-emerald-600 dark:text-emerald-400" },
+  { key: "不通過", label: "不通過", className: "text-red-600 dark:text-red-400" },
+  { key: "結果待ち", label: "結果待ち", className: "text-amber-600 dark:text-amber-400" },
+];
+
+function CompanyBreakdown({ row }: { row: Row }) {
+  const groups = RESULT_GROUPS.map((g) => ({
+    ...g,
+    names: row.entries.filter((e) => e.result === g.key).map((e) => e.company),
+  })).filter((g) => g.names.length > 0);
+
+  if (groups.length === 0) return null;
+  return (
+    <div className="mt-2 space-y-1.5">
+      {groups.map((g) => (
+        <div key={g.key} className="flex gap-2 text-xs">
+          <span className={`shrink-0 font-medium ${g.className}`}>
+            {g.label}
+            <span className="ml-0.5 text-muted-foreground">{g.names.length}</span>
+          </span>
+          <span className="min-w-0 text-foreground">{g.names.join("、 ")}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function SelectionFunnel({
   stats,
   interviewRounds = [],
@@ -57,7 +85,7 @@ export function SelectionFunnel({
           <div>
             <h2 className="text-sm font-medium text-foreground">選考の通過率</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              タップで展開。バーは通過率（通過÷決着した数）
+              各ステップをタップすると通過/不通過の企業名が見られます
             </p>
           </div>
           <span className="shrink-0 text-xs text-muted-foreground transition-transform group-open:rotate-90">
@@ -72,27 +100,40 @@ export function SelectionFunnel({
             </p>
           ) : (
             <div className="space-y-2.5">
-              {rows.map((r) =>
-                r.stage === "面接" && roundRows.length > 0 ? (
-                  <details key={r.stage} className="group/round">
-                    <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
-                      <span className="text-[10px] text-muted-foreground transition-transform group-open/round:rotate-90">
+              {rows.map((r) => {
+                const showRounds = r.stage === "面接" && roundRows.length > 0;
+                const hasEntries = r.entries.length > 0;
+                if (!showRounds && !hasEntries) {
+                  return (
+                    <div key={r.stage} className="flex">
+                      <StatBar row={r} />
+                    </div>
+                  );
+                }
+                return (
+                  <details key={r.stage} className="group/st">
+                    <summary className="flex cursor-pointer list-none items-start gap-1.5 [&::-webkit-details-marker]:hidden">
+                      <span className="mt-1 text-[10px] text-muted-foreground transition-transform group-open/st:rotate-90">
                         ▶
                       </span>
-                      <div className="flex-1">
-                        <StatBar row={r} />
-                      </div>
+                      <StatBar row={r} />
                     </summary>
-                    <div className="mt-2 space-y-2 border-l border-border pl-3">
-                      {roundRows.map((rr) => (
-                        <StatBar key={rr.stage} row={rr} small />
-                      ))}
+                    <div className="mt-2 border-l border-border pl-3">
+                      {showRounds && (
+                        <div className="mb-2 space-y-2">
+                          {roundRows.map((rr) => (
+                            <div key={rr.stage}>
+                              <StatBar row={rr} small />
+                              <CompanyBreakdown row={rr} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!showRounds && <CompanyBreakdown row={r} />}
                     </div>
                   </details>
-                ) : (
-                  <StatBar key={r.stage} row={r} />
-                )
-              )}
+                );
+              })}
             </div>
           )}
         </div>
