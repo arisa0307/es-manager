@@ -57,7 +57,9 @@ export async function getSelectionFunnelStats(): Promise<SelectionStats> {
   const supabase = await createClient();
   const [esRes, eventRes, taskRes] = await Promise.all([
     supabase.from("es_submissions").select("result"),
-    supabase.from("company_events").select("type, result, event_date, title"),
+    supabase
+      .from("company_events")
+      .select("type, result, event_date, title, interview_round"),
     supabase.from("tasks").select("stage, result, title"),
   ]);
 
@@ -82,7 +84,11 @@ export async function getSelectionFunnelStats(): Promise<SelectionStats> {
   for (const r of esRes.data ?? []) bump(stat["ES"], r.result);
   for (const e of eventRes.data ?? []) {
     bump(stat[EVENT_TYPE_TO_STAGE[e.type] ?? ""], e.result);
-    if (e.type === "interview") bump(rounds[classifyInterviewRound(e.title)], e.result);
+    if (e.type === "interview") {
+      // 明示ラウンドがあれば優先、無ければタイトルから推定
+      const round = e.interview_round || classifyInterviewRound(e.title);
+      bump(rounds[round], e.result);
+    }
     if (e.type === "internship" && e.event_date) {
       if (e.event_date <= today) internshipAttended++;
       else internshipUpcoming++;

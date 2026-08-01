@@ -11,6 +11,7 @@ export const COMPANY_STATUSES = [
   "ES",
   "Webテスト",
   "面接",
+  "落選",
 ] as const;
 export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
 
@@ -68,6 +69,16 @@ export const COMPANY_EVENT_TYPE_LABELS: Record<CompanyEventType, string> = {
  */
 export const SELECTION_RESULTS = ["", "結果待ち", "通過", "不通過"] as const;
 export type SelectionResult = (typeof SELECTION_RESULTS)[number];
+
+/** 面接のラウンド(明示分類用) */
+export const INTERVIEW_ROUND_OPTIONS = [
+  "一次面接",
+  "二次面接",
+  "三次面接",
+  "最終面接",
+  "AI面接",
+] as const;
+export type InterviewRound = (typeof INTERVIEW_ROUND_OPTIONS)[number];
 
 export const EVENT_SCHEDULE_STATUSES = [
   "confirmed",
@@ -208,6 +219,8 @@ export type CompanyEvent = {
   report?: string | null;
   /** ES・Webテスト・面接などの通過可否 */
   result?: string | null;
+  /** 面接のラウンド(一次/二次/最終/AIなど)。type=interview のとき使用。 */
+  interview_round?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -297,6 +310,7 @@ export type CompanyEventInsert = {
   memo?: string | null;
   report?: string | null;
   result?: string | null;
+  interview_round?: string | null;
 };
 
 export type CompanyEventUpdate = Partial<Omit<CompanyEventInsert, "company_id">>;

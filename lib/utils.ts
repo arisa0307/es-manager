@@ -57,6 +57,7 @@ const STATUS_COLORS: Record<CompanyStatus, string> = {
   ES: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
   Webテスト: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
   面接: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  落選: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
 export function getStatusColor(status: CompanyStatus): string {
@@ -97,7 +98,11 @@ export function isActiveCompany(c: {
   status: CompanyStatus;
   result: string | null;
 }): boolean {
-  const finished = c.result === "内定" || c.result === "落選" || c.result === "辞退";
+  const finished =
+    c.result === "内定" ||
+    c.result === "落選" ||
+    c.result === "辞退" ||
+    c.status === "落選";
   return !finished && c.status !== "未エントリー";
 }
 
