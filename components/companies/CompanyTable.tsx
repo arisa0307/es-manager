@@ -15,6 +15,7 @@ import {
   getStatusColor,
   getLevelColor,
   isOverdue,
+  isRejectedCompany,
 } from "@/lib/utils";
 import { COMPANY_STATUSES, DESIRED_LEVELS } from "@/types";
 import type { Company, CompanyStatus, DesiredLevel } from "@/types";
@@ -88,7 +89,7 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
             {companies.map((c) => (
               <tr
                 key={c.id}
-                className="border-b border-border last:border-0 hover:bg-muted/30"
+                className={`border-b border-border last:border-0 hover:bg-muted/30 ${isRejectedCompany(c) ? "opacity-50 grayscale" : ""}`}
               >
                 <td className="px-3 py-2.5">
                   <Link
@@ -152,7 +153,7 @@ export function CompanyTable({ companies }: { companies: Company[] }) {
       {/* Mobile cards */}
       <div className={`md:hidden space-y-2 ${isPending ? "opacity-60" : ""}`}>
         {companies.map((c) => (
-          <Card key={c.id} hover>
+          <Card key={c.id} hover className={isRejectedCompany(c) ? "opacity-50 grayscale" : ""}>
             <div className="flex items-start justify-between gap-2">
               <Link
                 href={`/companies/${c.id}`}

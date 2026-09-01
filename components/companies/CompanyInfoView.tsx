@@ -36,6 +36,10 @@ export function CompanyInfoView({ company }: { company: Company }) {
           label: "企業メモ",
           node: <LinkifiedText text={company.memo} />,
         },
+        company.interview_prep && {
+          label: "面接対策メモ",
+          node: <LinkifiedText text={company.interview_prep} />,
+        },
       ]),
     },
     {

@@ -30,6 +30,7 @@ export function parseCompanyFormData(form: FormData) {
     desired_level: (form.get("desired_level") as DesiredLevel) || null,
     status: form.get("status") as CompanyStatus,
     progress_note: (form.get("progress_note") as string) || null,
+    interview_prep: (form.get("interview_prep") as string) || null,
     result: (form.get("result") as string) || null,
     salary: (form.get("salary") as string) || null,
     next_action: (form.get("next_action") as string) || null,
@@ -179,6 +180,14 @@ export function CompanyFormFields({
             rows={4}
             defaultValue={company?.memo ?? ""}
             placeholder="事業内容、気になった点、面談で聞きたいことなど"
+          />
+        </Field>
+        <Field label="面接対策メモ">
+          <Textarea
+            name="interview_prep"
+            rows={5}
+            defaultValue={company?.interview_prep ?? ""}
+            placeholder="想定質問と回答、逆質問案、自己PR・ガクチカの要点、志望動機など"
           />
         </Field>
       </section>

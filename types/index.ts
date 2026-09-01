@@ -111,6 +111,8 @@ export type Company = {
   status: CompanyStatus;
   /** その企業固有の進捗状況を自由記述で(例: SPIリンク待ち / ES提出済み / インターン結果待ち) */
   progress_note: string | null;
+  /** 面接対策メモ(想定質問・逆質問案・自己PRなど) */
+  interview_prep: string | null;
   result: string | null;
   salary: string | null;
   next_action: string | null;
@@ -257,6 +259,7 @@ export type CompanyInsert = {
   desired_level?: DesiredLevel | null;
   status?: CompanyStatus;
   progress_note?: string | null;
+  interview_prep?: string | null;
   result?: string | null;
   salary?: string | null;
   next_action?: string | null;

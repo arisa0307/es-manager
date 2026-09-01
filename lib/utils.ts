@@ -141,11 +141,20 @@ const STATUS_ORDER: Record<string, number> = Object.fromEntries(
   COMPANY_STATUSES.map((status, index) => [status, index])
 );
 
+/** 落選(ステータスまたは結果が落選)の企業か。一覧では最下部＋グレーで表示する。 */
+export function isRejectedCompany(c: {
+  status: CompanyStatus | string;
+  result?: string | null;
+}): boolean {
+  return c.status === "落選" || c.result === "落選";
+}
+
 export function sortCompanies<T extends {
   name: string;
   deadline: string | null;
   desired_level: DesiredLevel | null;
   status: CompanyStatus;
+  result?: string | null;
   updated_at: string;
 }>(
   items: T[],
@@ -154,6 +163,11 @@ export function sortCompanies<T extends {
 ): T[] {
   const dir = order === "asc" ? 1 : -1;
   return [...items].sort((a, b) => {
+    // 落選は並び順・昇降に関わらず常に最後
+    const ra = isRejectedCompany(a) ? 1 : 0;
+    const rb = isRejectedCompany(b) ? 1 : 0;
+    if (ra !== rb) return ra - rb;
+
     let cmp = 0;
     switch (field) {
       case "name":
