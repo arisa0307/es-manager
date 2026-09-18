@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/Textarea";
 import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import {
   ES_PHASES,
+  ES_SUBMISSION_KINDS,
   SELECTION_RESULTS,
   type Company,
   type ESSubmission,
+  type EsSubmissionKind,
 } from "@/types";
 
 const ES_BUCKET = "es-files";
@@ -34,6 +36,7 @@ export function ESSubmissionForm({
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [kind, setKind] = useState<EsSubmissionKind>(submission?.kind ?? "ES");
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -75,9 +78,11 @@ export function ESSubmissionForm({
         }
 
         const payload = {
+          kind,
           phase: form.get("phase") as (typeof ES_PHASES)[number],
           title: (form.get("title") as string) || null,
-          result: (form.get("result") as string) || null,
+          // アンケートは通過/不通過の概念がないので結果は持たせない
+          result: kind === "アンケート" ? null : (form.get("result") as string) || null,
           submitted_on: (form.get("submitted_on") as string) || null,
           memo: (form.get("memo") as string) || null,
           file_path,
@@ -123,7 +128,22 @@ export function ESSubmissionForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-xs text-muted-foreground">種別</label>
+          <label className="mb-1 block text-xs text-muted-foreground">種類</label>
+          <Select
+            value={kind}
+            onChange={(e) => setKind(e.target.value as EsSubmissionKind)}
+          >
+            {ES_SUBMISSION_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {k}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            {kind === "アンケート" ? "時期" : "選考種別"}
+          </label>
           <Select name="phase" defaultValue={submission?.phase ?? "本選考"}>
             {ES_PHASES.map((p) => (
               <option key={p} value={p}>
@@ -132,6 +152,9 @@ export function ESSubmissionForm({
             ))}
           </Select>
         </div>
+      </div>
+
+      {kind !== "アンケート" && (
         <div>
           <label className="mb-1 block text-xs text-muted-foreground">選考結果</label>
           <Select name="result" defaultValue={submission?.result ?? ""}>
@@ -142,7 +165,7 @@ export function ESSubmissionForm({
             ))}
           </Select>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -192,7 +215,9 @@ export function ESSubmissionForm({
               ? "保存中..."
               : submission
                 ? "更新"
-                : "ES提出を登録"}
+                : kind === "アンケート"
+                  ? "アンケートを登録"
+                  : "ES提出を登録"}
         </Button>
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel}>

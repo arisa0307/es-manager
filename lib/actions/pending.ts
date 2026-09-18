@@ -32,7 +32,8 @@ export async function getPendingResults(): Promise<PendingResult[]> {
     supabase
       .from("es_submissions")
       .select("id, title, phase, company_id, submitted_on, result, companies(name)")
-      .eq("result", "結果待ち"),
+      .eq("result", "結果待ち")
+      .eq("kind", "ES"),
     supabase
       .from("company_events")
       .select("id, type, title, event_date, company_id, result, companies(name)")

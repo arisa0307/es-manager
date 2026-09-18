@@ -70,7 +70,7 @@ function companyName(c: Joined): string {
 export async function getSelectionFunnelStats(): Promise<SelectionStats> {
   const supabase = await createClient();
   const [esRes, eventRes, taskRes] = await Promise.all([
-    supabase.from("es_submissions").select("result, companies(name)"),
+    supabase.from("es_submissions").select("result, kind, companies(name)"),
     supabase
       .from("company_events")
       .select("type, result, event_date, title, interview_round, companies(name)"),
@@ -109,6 +109,8 @@ export async function getSelectionFunnelStats(): Promise<SelectionStats> {
   let internshipUpcoming = 0;
 
   for (const r of esRes.data ?? []) {
+    // アンケートは通過/不通過の概念がないので通過率には含めない
+    if (r.kind === "アンケート") continue;
     record(stat["ES"], r.result, companyName(r.companies as Joined));
   }
   for (const e of eventRes.data ?? []) {

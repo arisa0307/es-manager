@@ -30,6 +30,7 @@ export function buildCompanySelectionSteps(
   const steps: SelectionStep[] = [];
 
   for (const sub of esSubmissions) {
+    if (sub.kind === "アンケート") continue;
     if (!sub.result) continue;
     steps.push({
       id: `es-${sub.id}`,
