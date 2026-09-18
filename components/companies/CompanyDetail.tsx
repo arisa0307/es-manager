@@ -611,12 +611,17 @@ function EventCard({
               </p>
             )}
             {event.memo && (
-              <div className="mt-2 rounded-md border border-border bg-card px-2.5 py-2 text-sm text-foreground">
-                <span className="mr-1.5 text-xs font-medium text-muted-foreground">
+              <details className="group/memo mt-2 rounded-md border border-border bg-card px-2.5 py-2">
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+                  <span className="text-[10px] transition-transform group-open/memo:rotate-90">
+                    ▶
+                  </span>
                   事前メモ
-                </span>
-                <LinkifiedText text={event.memo} />
-              </div>
+                </summary>
+                <div className="mt-1.5 text-sm text-foreground">
+                  <LinkifiedText text={event.memo} />
+                </div>
+              </details>
             )}
             {event.report && (
               /* 全文は上の「参加後の記録」欄にまとまるので、ここでは冒頭だけ表示 */

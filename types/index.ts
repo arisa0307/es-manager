@@ -149,6 +149,10 @@ export type ES = {
 export const ES_PHASES = ["インターン", "本選考", "その他"] as const;
 export type EsPhase = (typeof ES_PHASES)[number];
 
+/** ES提出の種別。アンケート回答も同じ仕組みで管理する(通過率はESのみ集計)。 */
+export const ES_SUBMISSION_KINDS = ["ES", "アンケート"] as const;
+export type EsSubmissionKind = (typeof ES_SUBMISSION_KINDS)[number];
+
 /**
  * ES提出(応募)= 通過可否・添付・種別を持つ単位。設問(ES)はこの下にぶら下がる。
  * 同じ企業でインターン用・本選考用など複数の提出を持てる。
@@ -156,6 +160,7 @@ export type EsPhase = (typeof ES_PHASES)[number];
 export type ESSubmission = {
   id: string;
   company_id: string;
+  kind: EsSubmissionKind;
   phase: EsPhase;
   title: string | null;
   result: string | null;
@@ -169,6 +174,7 @@ export type ESSubmission = {
 
 export type ESSubmissionInsert = {
   company_id: string;
+  kind?: EsSubmissionKind;
   phase?: EsPhase;
   title?: string | null;
   result?: string | null;

@@ -66,6 +66,11 @@ export function ESSubmissionCard({
       className={`rounded-xl border border-border bg-card shadow-sm ${isPending ? "opacity-60" : ""}`}
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
+        {submission.kind === "アンケート" && (
+          <Badge className="bg-teal-500/10 text-teal-700 dark:text-teal-300">
+            アンケート
+          </Badge>
+        )}
         <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300">
           {submission.phase}
         </Badge>
