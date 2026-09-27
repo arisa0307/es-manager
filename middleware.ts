@@ -4,7 +4,9 @@ import { updateSession } from "@/lib/supabase/middleware";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute =
-    pathname === "/api/calendar.ics" || pathname === "/api/events";
+    pathname === "/api/calendar.ics" ||
+    pathname === "/api/events" ||
+    pathname === "/api/health";
 
   if (isPublicRoute) {
     return NextResponse.next();

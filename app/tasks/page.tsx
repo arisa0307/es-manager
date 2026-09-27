@@ -14,6 +14,7 @@ export default async function TasksPage({
   searchParams: Promise<{
     q?: string;
     priority?: string;
+    kind?: string;
     done?: string;
     sort?: "deadline" | "desired_level";
     order?: "asc" | "desc";
@@ -33,6 +34,7 @@ export default async function TasksPage({
       getTasks({
         search: params.q,
         priority: params.priority,
+        kind: params.kind,
         isDone,
         sort: params.sort,
         order: params.order,

@@ -34,3 +34,44 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## 外部API
+
+### 認証
+
+`/api/events` と `/api/health` は、カレンダー購読と同じ Bearer トークン方式で認証する。
+トークンは `calendar_subscriptions.token`（ユーザーごとに発行済み）を使う。
+
+### ヘルスケアデータの取り込み（`POST /api/health`）
+
+iPhone のショートカットなどから、その日の体重・摂取カロリー・アクティブカロリー・歩数を送る。
+同じ `logDate` があれば上書き（upsert）する。欠けている項目は `null` のまま保存される。
+
+リクエストボディ（JSON）:
+
+| フィールド    | 型     | 必須 | 説明                       |
+| ------------- | ------ | ---- | -------------------------- |
+| `logDate`     | string | ○    | `YYYY-MM-DD`               |
+| `weightKg`    | number |      | 体重(kg)                   |
+| `intakeKcal`  | number |      | 摂取カロリー(kcal)         |
+| `activeKcal`  | number |      | アクティブカロリー(kcal)   |
+| `steps`       | number |      | 歩数                       |
+
+curl での送信例:
+
+```bash
+curl -X POST https://<your-app>.vercel.app/api/health \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "logDate": "2026-09-27",
+    "weightKg": 58.4,
+    "intakeKcal": 1850,
+    "activeKcal": 520,
+    "steps": 8123
+  }'
+```
+
+iPhone ショートカットでは「URLの内容を取得」アクションで、
+メソッド `POST`、ヘッダ `Authorization: Bearer <YOUR_TOKEN>`、
+本文を JSON にして上記フィールドを渡す。

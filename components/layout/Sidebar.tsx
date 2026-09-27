@@ -12,6 +12,7 @@ const navItems = [
   { href: "/companies", label: "企業", icon: "◇" },
   { href: "/es", label: "ES", icon: "✎" },
   { href: "/tasks", label: "タスク", icon: "☑" },
+  { href: "/focus", label: "集中", icon: "◐" },
   { href: "/calendar", label: "カレンダー", icon: "▦" },
   { href: "/templates", label: "テンプレ", icon: "⎘" },
 ];

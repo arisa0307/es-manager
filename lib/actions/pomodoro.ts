@@ -1,0 +1,56 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { getAuthedClient } from "@/lib/supabase/auth";
+import { createClient } from "@/lib/supabase/server";
+import { getTodayString } from "@/lib/utils";
+import type { PomodoroKind } from "@/types";
+
+/** ポモドーロ開始。started_at を DB に記録し、id と開始時刻を返す。 */
+export async function startPomodoro(
+  taskId: string | null,
+  kind: PomodoroKind = "focus"
+) {
+  const { supabase, user } = await getAuthedClient();
+  const { data, error } = await supabase
+    .from("pomodoro_sessions")
+    .insert({
+      user_id: user.id,
+      task_id: taskId,
+      kind,
+      started_at: new Date().toISOString(),
+    })
+    .select("id, started_at")
+    .single();
+  if (error) throw new Error(error.message);
+  return data as { id: string; started_at: string };
+}
+
+/**
+ * ポモドーロ終了。最後まで回ったら completed=true、途中で止めたら false。
+ * どちらでも ended_at を記録する。
+ */
+export async function finishPomodoro(id: string, completed: boolean) {
+  const { supabase } = await getAuthedClient();
+  const { error } = await supabase
+    .from("pomodoro_sessions")
+    .update({ ended_at: new Date().toISOString(), completed })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/focus");
+}
+
+/** 今日(Asia/Tokyo)完了した集中ポモの数。 */
+export async function getTodayPomodoroCount(): Promise<number> {
+  const supabase = await createClient();
+  const today = getTodayString();
+  const startIso = `${today}T00:00:00+09:00`;
+  const { count, error } = await supabase
+    .from("pomodoro_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("kind", "focus")
+    .eq("completed", true)
+    .gte("started_at", startIso);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}

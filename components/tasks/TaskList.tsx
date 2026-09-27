@@ -12,9 +12,11 @@ import { TaskForm } from "./TaskForm";
 import { formatDate, getPriorityColor, getSelectionResultColor, isOverdue } from "@/lib/utils";
 import {
   DESIRED_LEVEL_LABELS,
+  TASK_KIND_LABELS,
   TASK_PRIORITY_LABELS,
   type Company,
   type DesiredLevel,
+  type TaskKind,
   type TaskPriority,
   type TaskWithCompany,
 } from "@/types";
@@ -29,6 +31,28 @@ export function TaskList({
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<TaskWithCompany | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // 親タスクの直後に子タスクを並べ、子はインデントして表示する。
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const childrenOf = new Map<string, TaskWithCompany[]>();
+  const roots: TaskWithCompany[] = [];
+  for (const t of tasks) {
+    const pid = t.parent_task_id;
+    if (pid && byId.has(pid)) {
+      const arr = childrenOf.get(pid) ?? [];
+      arr.push(t);
+      childrenOf.set(pid, arr);
+    } else {
+      roots.push(t);
+    }
+  }
+  const ordered: { task: TaskWithCompany; depth: number }[] = [];
+  for (const r of roots) {
+    ordered.push({ task: r, depth: 0 });
+    for (const c of childrenOf.get(r.id) ?? []) {
+      ordered.push({ task: c, depth: 1 });
+    }
+  }
 
   if (tasks.length === 0 && !showForm) {
     return (
@@ -53,8 +77,11 @@ export function TaskList({
       )}
       {!showForm && !editing && <Button onClick={() => setShowForm(true)}>+ タスク追加</Button>}
       <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
-        {tasks.map((task) => (
-          <Card key={task.id} className={task.is_done ? "opacity-60" : ""}>
+        {ordered.map(({ task, depth }) => (
+          <Card
+            key={task.id}
+            className={`${task.is_done ? "opacity-60" : ""} ${depth > 0 ? "ml-6 border-l-2 border-l-accent/30" : ""}`}
+          >
             <div className="flex items-start gap-3">
               <input
                 type="checkbox"
@@ -75,6 +102,19 @@ export function TaskList({
                   <Badge className={getPriorityColor(task.priority as TaskPriority)}>
                     {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
                   </Badge>
+                  {task.kind && task.kind !== "next" && (
+                    <Badge className="bg-muted text-muted-foreground">
+                      {TASK_KIND_LABELS[task.kind as TaskKind]}
+                      {task.kind === "waiting" && task.waiting_on
+                        ? `：${task.waiting_on}`
+                        : ""}
+                    </Badge>
+                  )}
+                  {typeof task.est_pomos === "number" && (
+                    <Badge className="bg-muted text-muted-foreground">
+                      {task.est_pomos === 0 ? "小" : `${task.est_pomos}ポモ`}
+                    </Badge>
+                  )}
                   {task.result && (
                     <Badge className={getSelectionResultColor(task.result)}>
                       {task.result}

@@ -5,7 +5,12 @@ import { useCallback, useTransition } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useDebouncedCallback } from "@/lib/use-debounced-callback";
-import { TASK_PRIORITIES, TASK_PRIORITY_LABELS } from "@/types";
+import {
+  TASK_KINDS,
+  TASK_KIND_LABELS,
+  TASK_PRIORITIES,
+  TASK_PRIORITY_LABELS,
+} from "@/types";
 
 export function TaskFilters() {
   const router = useRouter();
@@ -33,6 +38,10 @@ export function TaskFilters() {
       <Select value={searchParams.get("priority") ?? ""} onChange={(e) => update("priority", e.target.value)} className="sm:w-28">
         <option value="">優先度</option>
         {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>)}
+      </Select>
+      <Select value={searchParams.get("kind") ?? ""} onChange={(e) => update("kind", e.target.value)} className="sm:w-28">
+        <option value="">種別</option>
+        {TASK_KINDS.map((k) => <option key={k} value={k}>{TASK_KIND_LABELS[k]}</option>)}
       </Select>
       <Select value={searchParams.get("done") ?? "false"} onChange={(e) => update("done", e.target.value)} className="sm:w-28">
         <option value="false">未完了</option>

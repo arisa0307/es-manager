@@ -7,7 +7,21 @@ import { Input } from "@/components/ui/Input";
 import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { SELECTION_RESULTS, TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_STAGES, type Company, type Task, type TaskPriority } from "@/types";
+import {
+  SELECTION_RESULTS,
+  TASK_CATEGORIES,
+  TASK_CATEGORY_LABELS,
+  TASK_KINDS,
+  TASK_KIND_LABELS,
+  TASK_PRIORITIES,
+  TASK_PRIORITY_LABELS,
+  TASK_STAGES,
+  type Company,
+  type Task,
+  type TaskCategory,
+  type TaskKind,
+  type TaskPriority,
+} from "@/types";
 
 export function TaskForm({
   companies,
@@ -28,6 +42,7 @@ export function TaskForm({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const estPomosRaw = (form.get("est_pomos") as string)?.trim();
     const data = {
       title: form.get("title") as string,
       memo: (form.get("memo") as string) || null,
@@ -35,6 +50,10 @@ export function TaskForm({
       priority: form.get("priority") as TaskPriority,
       result: (form.get("result") as string) || null,
       stage: (form.get("stage") as string) || null,
+      kind: (form.get("kind") as TaskKind) || null,
+      category: (form.get("category") as TaskCategory) || null,
+      est_pomos: estPomosRaw === "" ? null : Number(estPomosRaw),
+      waiting_on: (form.get("waiting_on") as string)?.trim() || null,
       company_id: (form.get("company_id") as string) || defaultCompanyId || null,
     };
 
@@ -82,6 +101,45 @@ export function TaskForm({
             ))}
           </Select>
         </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">種別</label>
+          <Select name="kind" defaultValue={task?.kind ?? "next"}>
+            {TASK_KINDS.map((k) => (
+              <option key={k} value={k}>{TASK_KIND_LABELS[k]}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">分類</label>
+          <Select name="category" defaultValue={task?.category ?? "shukatsu"}>
+            {TASK_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{TASK_CATEGORY_LABELS[c]}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">
+            見積ポモ
+          </label>
+          <Input
+            type="number"
+            name="est_pomos"
+            min={0}
+            defaultValue={task?.est_pomos ?? 1}
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">
+          待ちの相手（「待ち」のとき）
+        </label>
+        <Input
+          name="waiting_on"
+          placeholder="例: claude / 企業名"
+          defaultValue={task?.waiting_on ?? ""}
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
