@@ -3,14 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
-import { LEVEL_ORDER } from "@/lib/utils";
-import type { DesiredLevel, SortOrder, TaskInsert, TaskUpdate } from "@/types";
+import { getTodayString, LEVEL_ORDER } from "@/lib/utils";
+import type {
+  DesiredLevel,
+  SortOrder,
+  TaskInsert,
+  TaskUpdate,
+  TaskWithCompany,
+} from "@/types";
 
 type TaskSort = "deadline" | "desired_level";
 
 export async function getTasks(options?: {
   search?: string;
   priority?: string;
+  kind?: string;
   isDone?: boolean;
   companyId?: string;
   sort?: TaskSort;
@@ -28,6 +35,7 @@ export async function getTasks(options?: {
     );
   }
   if (options?.priority) query = query.eq("priority", options.priority);
+  if (options?.kind) query = query.eq("kind", options.kind);
   if (options?.isDone !== undefined)
     query = query.eq("is_done", options.isDone);
   if (options?.companyId) query = query.eq("company_id", options.companyId);
@@ -35,6 +43,24 @@ export async function getTasks(options?: {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return sortTasks(data ?? [], options?.sort ?? "deadline", options?.order ?? "asc");
+}
+
+/**
+ * /focus 用: 今日(Asia/Tokyo)の並びに入っている未完了タスクを plan_order 昇順で返す。
+ * 毎朝 Cowork 側が plan_date / plan_order を書き込む前提。
+ */
+export async function getFocusTasks(): Promise<TaskWithCompany[]> {
+  const supabase = await createClient();
+  const today = getTodayString();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*, companies(id, name, desired_level)")
+    .eq("plan_date", today)
+    .eq("is_done", false)
+    .order("plan_order", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as TaskWithCompany[];
 }
 
 function sortTasks<T extends {
@@ -110,6 +136,7 @@ export async function createTask(input: TaskInsert) {
   revalidatePath("/");
   revalidatePath("/tasks");
   revalidatePath("/calendar");
+  revalidatePath("/focus");
   if (input.company_id) revalidatePath(`/companies/${input.company_id}`);
   return data;
 }
@@ -126,12 +153,86 @@ export async function updateTask(id: string, input: TaskUpdate) {
   revalidatePath("/");
   revalidatePath("/tasks");
   revalidatePath("/calendar");
+  revalidatePath("/focus");
   if (data?.company_id) revalidatePath(`/companies/${data.company_id}`);
   return data;
 }
 
 export async function toggleTaskDone(id: string, isDone: boolean) {
   return updateTask(id, { is_done: isDone });
+}
+
+/** 既存メモを壊さず、新しい行を改行して追記する。 */
+function appendMemoLine(existing: string | null, line: string): string {
+  const trimmed = line.trim();
+  if (!existing) return trimmed;
+  return `${existing}\n${trimmed}`;
+}
+
+/**
+ * /focus 用: タスクを完了する。任意の1行メモがあれば memo に追記する。
+ * (選考結果は tasks.result で管理しているため、メモは result ではなく memo に入れる)
+ */
+export async function completeTaskWithNote(id: string, note?: string | null) {
+  const { supabase } = await getAuthedClient();
+  const patch: TaskUpdate = { is_done: true };
+  if (note && note.trim()) {
+    const { data: cur } = await supabase
+      .from("tasks")
+      .select("memo")
+      .eq("id", id)
+      .single();
+    patch.memo = appendMemoLine(cur?.memo ?? null, note);
+  }
+  const { data, error } = await supabase
+    .from("tasks")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+  revalidatePath("/tasks");
+  revalidatePath("/calendar");
+  revalidatePath("/focus");
+  if (data?.company_id) revalidatePath(`/companies/${data.company_id}`);
+  return data;
+}
+
+/**
+ * /focus 用: 途中まで進めたタスクを持ち越す。
+ * est_pomos を1減らし(0未満にはしない)、plan_date を null に戻す。
+ * 任意の1行メモがあれば memo に追記する。
+ */
+export async function carryOverTask(id: string, note?: string | null) {
+  const { supabase } = await getAuthedClient();
+  const { data: cur, error: readError } = await supabase
+    .from("tasks")
+    .select("memo, est_pomos")
+    .eq("id", id)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const patch: TaskUpdate = {
+    est_pomos: Math.max(0, (cur?.est_pomos ?? 1) - 1),
+    plan_date: null,
+  };
+  if (note && note.trim()) {
+    patch.memo = appendMemoLine(cur?.memo ?? null, note);
+  }
+  const { data, error } = await supabase
+    .from("tasks")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+  revalidatePath("/tasks");
+  revalidatePath("/calendar");
+  revalidatePath("/focus");
+  if (data?.company_id) revalidatePath(`/companies/${data.company_id}`);
+  return data;
 }
 
 export async function deleteTask(id: string) {
@@ -146,5 +247,6 @@ export async function deleteTask(id: string) {
   revalidatePath("/");
   revalidatePath("/tasks");
   revalidatePath("/calendar");
+  revalidatePath("/focus");
   if (row?.company_id) revalidatePath(`/companies/${row.company_id}`);
 }

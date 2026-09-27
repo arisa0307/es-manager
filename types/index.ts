@@ -19,7 +19,7 @@ export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
 export const COMPANY_RESULTS = ["", "進行中", "内定", "落選", "辞退"] as const;
 export type CompanyResult = (typeof COMPANY_RESULTS)[number];
 
-export const DESIRED_LEVELS = ["S", "A", "B", "C", "D", "ワンチャン枠", "多様性"] as const;
+export const DESIRED_LEVELS = ["S", "A", "B", "C", "D", "ワンチャン枠", "多様性", "選考練習用"] as const;
 export type DesiredLevel = (typeof DESIRED_LEVELS)[number];
 
 export const DESIRED_LEVEL_LABELS: Record<DesiredLevel, string> = {
@@ -30,6 +30,7 @@ export const DESIRED_LEVEL_LABELS: Record<DesiredLevel, string> = {
   D: "D",
   ワンチャン枠: "ワンチャン枠",
   多様性: "多様性",
+  選考練習用: "選考練習用",
 };
 
 export const TASK_PRIORITIES = ["high", "mid", "low"] as const;
@@ -39,6 +40,27 @@ export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
   high: "高",
   mid: "中",
   low: "低",
+};
+
+/** GTD の種別: 次の行動 / 待ち(相手待ち) / いつか */
+export const TASK_KINDS = ["next", "waiting", "someday"] as const;
+export type TaskKind = (typeof TASK_KINDS)[number];
+
+export const TASK_KIND_LABELS: Record<TaskKind, string> = {
+  next: "次の行動",
+  waiting: "待ち",
+  someday: "いつか",
+};
+
+/** タスクの分類: 就活 / 基本情報技術者試験 / 実習 / その他 */
+export const TASK_CATEGORIES = ["shukatsu", "fe", "jisshu", "other"] as const;
+export type TaskCategory = (typeof TASK_CATEGORIES)[number];
+
+export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
+  shukatsu: "就活",
+  fe: "基本情報",
+  jisshu: "実習",
+  other: "その他",
 };
 
 export const COMPANY_EVENT_TYPES = [
@@ -207,6 +229,20 @@ export type Task = {
   result?: string | null;
   /** 適性試験/GD/面接 のどれか。設定すると通過率の集計に含まれる。 */
   stage?: string | null;
+  /** GTD 種別(次の行動/待ち/いつか) */
+  kind?: TaskKind | null;
+  /** 分類(就活/基本情報/実習/その他) */
+  category?: TaskCategory | null;
+  /** 見積もりポモ数。0 は10分以内の小タスク。 */
+  est_pomos?: number | null;
+  /** 大きいタスクを分割したときの親タスク */
+  parent_task_id?: string | null;
+  /** 今日の並びに入れた日付(Asia/Tokyo, YYYY-MM-DD) */
+  plan_date?: string | null;
+  /** その日の並び順(小さいほど先) */
+  plan_order?: number | null;
+  /** 待ちの相手(例: claude / company / 企業名) */
+  waiting_on?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -303,9 +339,43 @@ export type TaskInsert = {
   memo?: string | null;
   result?: string | null;
   stage?: string | null;
+  kind?: TaskKind | null;
+  category?: TaskCategory | null;
+  est_pomos?: number | null;
+  parent_task_id?: string | null;
+  plan_date?: string | null;
+  plan_order?: number | null;
+  waiting_on?: string | null;
 };
 
 export type TaskUpdate = Partial<TaskInsert>;
+
+/** ポモドーロの1セッション(集中/休憩)。/focus ページで記録する。 */
+export const POMODORO_KINDS = ["focus", "short_break", "long_break"] as const;
+export type PomodoroKind = (typeof POMODORO_KINDS)[number];
+
+export type PomodoroSession = {
+  id: string;
+  user_id: string;
+  task_id: string | null;
+  started_at: string;
+  ended_at: string | null;
+  kind: PomodoroKind;
+  completed: boolean;
+  note: string | null;
+  created_at: string;
+};
+
+export type HealthLog = {
+  id: string;
+  user_id: string;
+  log_date: string;
+  weight_kg: number | null;
+  intake_kcal: number | null;
+  active_kcal: number | null;
+  steps: number | null;
+  created_at: string;
+};
 
 export type CompanyEventInsert = {
   company_id: string;
