@@ -162,11 +162,18 @@ export async function toggleTaskDone(id: string, isDone: boolean) {
   return updateTask(id, { is_done: isDone });
 }
 
-/** 既存メモを壊さず、新しい行を改行して追記する。 */
-function appendMemoLine(existing: string | null, line: string): string {
-  const trimmed = line.trim();
-  if (!existing) return trimmed;
-  return `${existing}\n${trimmed}`;
+/**
+ * 既存メモを壊さず、新しい行を「[YYYY-MM-DD ラベル] 本文」の形で改行追記する。
+ * 翌朝どの操作で書かれたメモか読み違えないよう、日付(JST)と操作ラベルを付ける。
+ */
+function appendMemoLine(
+  existing: string | null,
+  label: string,
+  note: string
+): string {
+  const line = `[${getTodayString()} ${label}] ${note.trim()}`;
+  if (!existing) return line;
+  return `${existing}\n${line}`;
 }
 
 /**
@@ -182,7 +189,7 @@ export async function completeTaskWithNote(id: string, note?: string | null) {
       .select("memo")
       .eq("id", id)
       .single();
-    patch.memo = appendMemoLine(cur?.memo ?? null, note);
+    patch.memo = appendMemoLine(cur?.memo ?? null, "完了", note);
   }
   const { data, error } = await supabase
     .from("tasks")
@@ -218,7 +225,7 @@ export async function carryOverTask(id: string, note?: string | null) {
     plan_date: null,
   };
   if (note && note.trim()) {
-    patch.memo = appendMemoLine(cur?.memo ?? null, note);
+    patch.memo = appendMemoLine(cur?.memo ?? null, "持ち越し", note);
   }
   const { data, error } = await supabase
     .from("tasks")
