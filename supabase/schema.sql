@@ -47,6 +47,8 @@ create table if not exists tasks (
   priority text not null default 'mid' check (priority in ('high', 'mid', 'low')),
   is_done boolean not null default false,
   memo text,
+  -- カレンダー表示: true=常に出す / false=出さない / null=est_pomos>=1のときだけ
+  show_on_calendar boolean,
   user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

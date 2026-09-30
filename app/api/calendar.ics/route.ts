@@ -3,6 +3,7 @@ import {
   getCompanyEventScheduleLabel,
 } from "@/lib/company-event-utils";
 import { buildIcsCalendar } from "@/lib/calendar-ics";
+import { shouldShowTaskOnCalendar } from "@/lib/calendar-task-visibility";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   GENERAL_EVENT_TYPE_LABELS,
@@ -65,7 +66,9 @@ export async function GET(request: Request) {
         .eq("user_id", subscription.user_id),
       supabase
         .from("tasks")
-        .select("id, title, deadline, is_done, company_id")
+        .select(
+          "id, title, deadline, is_done, company_id, est_pomos, show_on_calendar"
+        )
         .eq("user_id", subscription.user_id)
         .eq("is_done", false)
         .not("deadline", "is", null),
@@ -115,7 +118,9 @@ export async function GET(request: Request) {
         allDay: true,
         url: appBaseUrl ? `${appBaseUrl}/companies/${c.id}` : null,
       })),
-    ...(tasks ?? []).map((t) => ({
+    // 出さない条件のタスクは除外する。iCal 購読なのでフィードから外れれば
+    // 次回の同期でカレンダー側の予定も自動的に消える。
+    ...(tasks ?? []).filter(shouldShowTaskOnCalendar).map((t) => ({
       uid: `task-${t.id}`,
       title: `✅ タスク｜${companySuffix(t.company_id)}${t.title}`,
       description: t.company_id ? `企業: ${byCompanyId.get(t.company_id) ?? "未設定"}` : null,

@@ -108,6 +108,8 @@ $$;
 alter table tasks add column if not exists deadline date;
 alter table tasks add column if not exists is_done boolean not null default false;
 alter table tasks add column if not exists memo text;
+-- カレンダー表示の制御: true=常に出す / false=出さない / null=est_pomos>=1のときだけ出す
+alter table tasks add column if not exists show_on_calendar boolean;
 -- priority: medium → mid
 update tasks set priority = 'mid' where priority = 'medium';
 alter table tasks drop constraint if exists tasks_priority_check;

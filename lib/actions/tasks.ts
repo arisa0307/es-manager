@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayString, LEVEL_ORDER } from "@/lib/utils";
+import { shouldShowTaskOnCalendar } from "@/lib/calendar-task-visibility";
 import type {
   DesiredLevel,
   SortOrder,
@@ -111,18 +112,24 @@ export async function getCalendarTaskEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tasks")
-    .select("id, title, deadline, company_id, is_done, companies(name)")
+    .select(
+      "id, title, deadline, company_id, is_done, est_pomos, show_on_calendar, companies(name)"
+    )
     .not("deadline", "is", null)
     .eq("is_done", false);
   if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as {
+  const rows = (data ?? []) as unknown as {
     id: string;
     title: string;
     deadline: string | null;
     company_id: string | null;
     is_done: boolean;
+    est_pomos: number | null;
+    show_on_calendar: boolean | null;
     companies: { name: string } | null;
   }[];
+  // Googleカレンダー同期と同じ条件で、出さないタスクは除外する
+  return rows.filter(shouldShowTaskOnCalendar);
 }
 
 export async function createTask(input: TaskInsert) {

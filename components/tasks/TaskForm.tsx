@@ -54,6 +54,12 @@ export function TaskForm({
       category: (form.get("category") as TaskCategory) || null,
       est_pomos: estPomosRaw === "" ? null : Number(estPomosRaw),
       waiting_on: (form.get("waiting_on") as string)?.trim() || null,
+      show_on_calendar: ((): boolean | null => {
+        const v = form.get("show_on_calendar") as string;
+        if (v === "always") return true;
+        if (v === "never") return false;
+        return null;
+      })(),
       company_id: (form.get("company_id") as string) || defaultCompanyId || null,
     };
 
@@ -131,15 +137,36 @@ export function TaskForm({
           />
         </div>
       </div>
-      <div>
-        <label className="block text-xs text-muted-foreground mb-1">
-          待ちの相手（「待ち」のとき）
-        </label>
-        <Input
-          name="waiting_on"
-          placeholder="例: claude / 企業名"
-          defaultValue={task?.waiting_on ?? ""}
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">
+            待ちの相手（「待ち」のとき）
+          </label>
+          <Input
+            name="waiting_on"
+            placeholder="例: claude / 企業名"
+            defaultValue={task?.waiting_on ?? ""}
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-muted-foreground mb-1">
+            カレンダー表示
+          </label>
+          <Select
+            name="show_on_calendar"
+            defaultValue={
+              task?.show_on_calendar === true
+                ? "always"
+                : task?.show_on_calendar === false
+                  ? "never"
+                  : "auto"
+            }
+          >
+            <option value="auto">自動（見積ポモ1以上なら表示）</option>
+            <option value="always">常に表示</option>
+            <option value="never">表示しない</option>
+          </Select>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
