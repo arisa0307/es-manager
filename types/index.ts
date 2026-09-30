@@ -243,6 +243,11 @@ export type Task = {
   plan_order?: number | null;
   /** 待ちの相手(例: claude / company / 企業名) */
   waiting_on?: string | null;
+  /**
+   * カレンダー(Googleカレンダー同期／アプリ内)に締切を出すか。
+   * true=常に出す / false=出さない / null=est_pomos>=1 のときだけ出す(既定)
+   */
+  show_on_calendar?: boolean | null;
   created_at: string;
   updated_at: string;
 };
@@ -346,6 +351,7 @@ export type TaskInsert = {
   plan_date?: string | null;
   plan_order?: number | null;
   waiting_on?: string | null;
+  show_on_calendar?: boolean | null;
 };
 
 export type TaskUpdate = Partial<TaskInsert>;
