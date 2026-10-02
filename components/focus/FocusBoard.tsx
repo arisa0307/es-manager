@@ -301,10 +301,13 @@ export function FocusBoard({
         <p className="mb-4 text-sm text-muted-foreground min-h-5">
           {currentTask ? (
             <>
-              {currentTask.companies?.name && (
-                <span className="text-foreground font-medium">
+              {currentTask.companies && (
+                <Link
+                  href={`/companies/${currentTask.companies.id}`}
+                  className="text-foreground font-medium hover:underline underline-offset-2"
+                >
                   {currentTask.companies.name}
-                </span>
+                </Link>
               )}{" "}
               {currentTask.title}
             </>
@@ -376,22 +379,23 @@ export function FocusBoard({
           </p>
           <div className="space-y-1.5">
             {smallTasks.map((t) => (
-              <label
-                key={t.id}
-                className="flex items-center gap-2 text-sm cursor-pointer"
-              >
+              <div key={t.id} className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-border"
+                  className="h-4 w-4 rounded border-border cursor-pointer"
                   onChange={() => completeTask(t.id, false)}
                   disabled={pending}
                 />
                 <span className="flex-1 min-w-0">
-                  {t.companies?.name && (
-                    <span className="text-muted-foreground">
-                      {t.companies.name}・
-                    </span>
+                  {t.companies && (
+                    <Link
+                      href={`/companies/${t.companies.id}`}
+                      className="text-muted-foreground hover:text-foreground hover:underline underline-offset-2"
+                    >
+                      {t.companies.name}
+                    </Link>
                   )}
+                  {t.companies && "・"}
                   {t.title}
                 </span>
                 {t.deadline && (
@@ -401,7 +405,7 @@ export function FocusBoard({
                     {formatDate(t.deadline)}
                   </span>
                 )}
-              </label>
+              </div>
             ))}
           </div>
         </Card>
@@ -433,11 +437,16 @@ export function FocusBoard({
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">
-                      {t.companies?.name && (
-                        <span className="text-muted-foreground">
-                          {t.companies.name}・
-                        </span>
+                      {t.companies && (
+                        <Link
+                          href={`/companies/${t.companies.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-muted-foreground hover:text-foreground hover:underline underline-offset-2"
+                        >
+                          {t.companies.name}
+                        </Link>
                       )}
+                      {t.companies && "・"}
                       {t.title}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
