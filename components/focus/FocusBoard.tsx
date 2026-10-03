@@ -301,6 +301,11 @@ export function FocusBoard({
         <p className="mb-4 text-sm text-muted-foreground min-h-5">
           {currentTask ? (
             <>
+              {currentTask.is_must && (
+                <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 font-semibold mr-1.5">
+                  MUST
+                </Badge>
+              )}
               {currentTask.companies && (
                 <Link
                   href={`/companies/${currentTask.companies.id}`}
@@ -387,6 +392,11 @@ export function FocusBoard({
                   disabled={pending}
                 />
                 <span className="flex-1 min-w-0">
+                  {t.is_must && (
+                    <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 font-semibold mr-1.5">
+                      MUST
+                    </Badge>
+                  )}
                   {t.companies && (
                     <Link
                       href={`/companies/${t.companies.id}`}
@@ -428,7 +438,9 @@ export function FocusBoard({
               <Card
                 key={t.id}
                 hover
-                className={`cursor-pointer ${i === currentIndex ? "ring-2 ring-accent" : ""}`}
+                className={`cursor-pointer ${i === currentIndex ? "ring-2 ring-accent" : ""} ${
+                  t.is_must && !t.is_done ? "border-2 border-red-500" : ""
+                }`}
                 onClick={() => setCurrentIndex(i)}
               >
                 <div className="flex items-start gap-3">
@@ -450,6 +462,11 @@ export function FocusBoard({
                       {t.title}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {t.is_must && !t.is_done && (
+                        <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 font-semibold">
+                          MUST
+                        </Badge>
+                      )}
                       <Badge className="bg-muted text-muted-foreground">
                         {t.est_pomos ?? 1} ポモ
                       </Badge>
