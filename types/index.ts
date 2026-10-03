@@ -248,6 +248,8 @@ export type Task = {
    * true=常に出す / false=出さない / null=est_pomos>=1 のときだけ出す(既定)
    */
   show_on_calendar?: boolean | null;
+  /** 今日の最優先(Must)。/focus で赤枠+MUSTバッジ表示。毎朝ブリーフィングで設定。 */
+  is_must?: boolean | null;
   created_at: string;
   updated_at: string;
 };
@@ -352,6 +354,7 @@ export type TaskInsert = {
   plan_order?: number | null;
   waiting_on?: string | null;
   show_on_calendar?: boolean | null;
+  is_must?: boolean | null;
 };
 
 export type TaskUpdate = Partial<TaskInsert>;
