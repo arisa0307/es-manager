@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { finishPomodoro, startPomodoro } from "@/lib/actions/pomodoro";
-import { carryOverTask, completeTaskWithNote } from "@/lib/actions/tasks";
+import {
+  carryOverTask,
+  completeTaskWithNote,
+  toggleTaskDone,
+} from "@/lib/actions/tasks";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -108,8 +112,11 @@ export function FocusBoard({
   plannedPomos: number;
 }) {
   const router = useRouter();
-  const normalTasks = tasks.filter((t) => (t.est_pomos ?? 1) > 0);
-  const smallTasks = tasks.filter((t) => (t.est_pomos ?? 1) === 0);
+  const activeTasks = tasks.filter((t) => !t.is_done);
+  const normalTasks = activeTasks.filter((t) => (t.est_pomos ?? 1) > 0);
+  const smallTasks = activeTasks.filter((t) => (t.est_pomos ?? 1) === 0);
+  // 完了済みは当日のうちは残す(誤操作に気づけるよう取り消し線+戻すボタンで表示)。
+  const doneTasks = tasks.filter((t) => t.is_done);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [active, setActive] = useState<ActiveTimer | null>(null);
@@ -256,6 +263,19 @@ export function FocusBoard({
       }
     },
     [note, router]
+  );
+
+  const undoComplete = useCallback(
+    async (id: string) => {
+      setPending(true);
+      try {
+        await toggleTaskDone(id, false);
+        router.refresh();
+      } finally {
+        setPending(false);
+      }
+    },
+    [router]
   );
 
   // 完了数はサーバの真値。ポモ完了ごとに router.refresh() で更新される。
@@ -509,6 +529,40 @@ export function FocusBoard({
           </div>
         )}
       </div>
+
+      {/* 完了（今日）: 誤操作に気づけるよう、当日は取り消し線で残して戻せるようにする */}
+      {doneTasks.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-2 text-sm font-medium text-muted-foreground">
+            完了（今日・{doneTasks.length}件）
+          </p>
+          <div className="space-y-1.5">
+            {doneTasks.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center gap-2 text-sm opacity-60"
+              >
+                <span className="flex-1 min-w-0 line-through">
+                  {t.companies && (
+                    <span className="text-muted-foreground">
+                      {t.companies.name}・
+                    </span>
+                  )}
+                  {t.title}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => undoComplete(t.id)}
+                  disabled={pending}
+                >
+                  元に戻す
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
