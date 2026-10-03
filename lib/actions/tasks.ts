@@ -47,7 +47,9 @@ export async function getTasks(options?: {
 }
 
 /**
- * /focus 用: 今日(Asia/Tokyo)の並びに入っている未完了タスクを plan_order 昇順で返す。
+ * /focus 用: 今日(Asia/Tokyo)の並びに入っているタスクを plan_order 昇順で返す。
+ * 完了済みも含める(誤操作に気づけるよう、当日は取り消し線で残して戻せるようにするため)。
+ * 翌日は plan_date が一致しなくなるので自動的に消える。
  * 毎朝 Cowork 側が plan_date / plan_order を書き込む前提。
  */
 export async function getFocusTasks(): Promise<TaskWithCompany[]> {
@@ -57,7 +59,6 @@ export async function getFocusTasks(): Promise<TaskWithCompany[]> {
     .from("tasks")
     .select("*, companies(id, name, desired_level)")
     .eq("plan_date", today)
-    .eq("is_done", false)
     .order("plan_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
