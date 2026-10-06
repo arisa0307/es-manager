@@ -92,21 +92,19 @@ export async function POST(request: Request) {
   if (subscriptionError) return jsonResponse({ error: subscriptionError.message }, 500);
   if (!subscription) return jsonResponse({ error: "invalid token" }, 401);
 
-  // 同じ日付があれば上書き(upsert)。欠けている項目は null のまま保存する。
+  // 同じ日付があれば条件付きで upsert する(DB関数で1文・アトミックに判定)。
+  // - 体重/活動kcal/歩数: 送信値が null か 0 なら既存値を保持(未計測の0で消さない)
+  // - 摂取kcal: 後から来た値のほうが大きいときだけ更新
+  // - updated_at に更新時刻を記録
   const { data, error } = await supabase
-    .from("health_logs")
-    .upsert(
-      {
-        user_id: subscription.user_id,
-        log_date: logDate,
-        weight_kg: weight.value,
-        intake_kcal: intake.value,
-        active_kcal: active.value,
-        steps: steps.value,
-      },
-      { onConflict: "user_id,log_date" }
-    )
-    .select()
+    .rpc("upsert_health_log", {
+      p_user_id: subscription.user_id,
+      p_log_date: logDate,
+      p_weight: weight.value,
+      p_intake: intake.value,
+      p_active: active.value,
+      p_steps: steps.value,
+    })
     .single();
 
   if (error) return jsonResponse({ error: error.message }, 500);
