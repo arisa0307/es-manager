@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getTodayString, LEVEL_ORDER } from "@/lib/utils";
+import { getFocusDayString, LEVEL_ORDER } from "@/lib/utils";
 import { shouldShowTaskOnCalendar } from "@/lib/calendar-task-visibility";
 import type {
   DesiredLevel,
@@ -54,7 +54,7 @@ export async function getTasks(options?: {
  */
 export async function getFocusTasks(): Promise<TaskWithCompany[]> {
   const supabase = await createClient();
-  const today = getTodayString();
+  const today = getFocusDayString();
   const { data, error } = await supabase
     .from("tasks")
     .select("*, companies(id, name, desired_level)")
@@ -179,7 +179,7 @@ function appendMemoLine(
   label: string,
   note: string
 ): string {
-  const line = `[${getTodayString()} ${label}] ${note.trim()}`;
+  const line = `[${getFocusDayString()} ${label}] ${note.trim()}`;
   if (!existing) return line;
   return `${existing}\n${line}`;
 }

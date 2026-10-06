@@ -30,7 +30,7 @@ export function formatDateFull(date: string | null): string {
 
 export function isOverdue(deadline: string | null, isDone: boolean): boolean {
   if (!deadline || isDone) return false;
-  return deadline < getTodayString();
+  return deadline < getFocusDayString();
 }
 
 export function countWords(text: string | null): number {
@@ -206,9 +206,24 @@ export function getCalendarDays(year: number, month: number) {
   return days;
 }
 
-/** 日本時間の「今日」（YYYY-MM-DD） */
+/** 日本時間の「今日」（YYYY-MM-DD, 0:00区切り） */
 export function getTodayString(timeZone = "Asia/Tokyo"): string {
   return new Date().toLocaleDateString("en-CA", { timeZone });
+}
+
+/**
+ * /focus の「今日」。7:00(JST)始まりで、深夜(0:00〜6:59)は前日として扱う。
+ * 現在の日本時間から7時間引いた日付を返す。
+ * 例: 10/7 03:00 → 10/6、10/7 07:00 → 10/7。
+ */
+export function getFocusDayString(): string {
+  const shifted = new Date(Date.now() - 7 * 60 * 60 * 1000);
+  return shifted.toLocaleDateString("en-CA", { timeZone: "Asia/Tokyo" });
+}
+
+/** /focus の「今日」の開始時刻(7:00 JST)の ISO 文字列。日別集計の下限に使う。 */
+export function getFocusDayStartIso(): string {
+  return `${getFocusDayString()}T07:00:00+09:00`;
 }
 
 export function addDaysToDateString(dateStr: string, days: number): string {

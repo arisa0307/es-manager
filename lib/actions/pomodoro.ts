@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getTodayString } from "@/lib/utils";
+import { getFocusDayStartIso } from "@/lib/utils";
 import type { PomodoroKind } from "@/types";
 
 /** ポモドーロ開始。started_at を DB に記録し、id と開始時刻を返す。 */
@@ -40,11 +40,10 @@ export async function finishPomodoro(id: string, completed: boolean) {
   revalidatePath("/focus");
 }
 
-/** 今日(Asia/Tokyo)完了した集中ポモの数。 */
+/** 今日(7:00 JST区切り)完了した集中ポモの数。 */
 export async function getTodayPomodoroCount(): Promise<number> {
   const supabase = await createClient();
-  const today = getTodayString();
-  const startIso = `${today}T00:00:00+09:00`;
+  const startIso = getFocusDayStartIso();
   const { count, error } = await supabase
     .from("pomodoro_sessions")
     .select("id", { count: "exact", head: true })
