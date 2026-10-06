@@ -384,6 +384,7 @@ export type HealthLog = {
   active_kcal: number | null;
   steps: number | null;
   created_at: string;
+  updated_at: string;
 };
 
 export type CompanyEventInsert = {

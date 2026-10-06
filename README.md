@@ -45,7 +45,11 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ### ヘルスケアデータの取り込み（`POST /api/health`）
 
 iPhone のショートカットなどから、その日の体重・摂取カロリー・アクティブカロリー・歩数を送る。
-同じ `logDate` があれば上書き（upsert）する。欠けている項目は `null` のまま保存される。
+同じ `logDate` があれば条件付きで upsert する:
+
+- 体重・アクティブカロリー・歩数: 送信値が `null` か `0` のときは既存値を保持する（未計測の0で午前の値を消さないため）
+- 摂取カロリー: 後から送られた値のほうが大きいときだけ更新する（1日の累計を想定）
+- 更新のたびに `updated_at` を記録する
 
 リクエストボディ（JSON）:
 
