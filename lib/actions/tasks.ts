@@ -28,6 +28,7 @@ export async function getTasks(options?: {
   let query = supabase
     .from("tasks")
     .select("*, companies(id, name, desired_level)")
+    .is("deleted_at", null)
     .order("deadline", { ascending: true, nullsFirst: false });
 
   if (options?.search) {
@@ -58,6 +59,7 @@ export async function getFocusTasks(): Promise<TaskWithCompany[]> {
   const { data, error } = await supabase
     .from("tasks")
     .select("*, companies(id, name, desired_level)")
+    .is("deleted_at", null)
     .eq("plan_date", today)
     .order("plan_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -91,7 +93,8 @@ export async function getTaskStats() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tasks")
-    .select("is_done, deadline");
+    .select("is_done, deadline")
+    .is("deleted_at", null);
   if (error) throw new Error(error.message);
 
   const today = new Date().toISOString().split("T")[0];
@@ -116,6 +119,7 @@ export async function getCalendarTaskEvents() {
     .select(
       "id, title, deadline, company_id, is_done, est_pomos, show_on_calendar, companies(name)"
     )
+    .is("deleted_at", null)
     .not("deadline", "is", null)
     .eq("is_done", false);
   if (error) throw new Error(error.message);
@@ -250,6 +254,10 @@ export async function carryOverTask(id: string, note?: string | null) {
   return data;
 }
 
+/**
+ * タスクをゴミ箱へ(ソフト削除)。親をゴミ箱に入れたら子タスクも同じ日時でゴミ箱へ。
+ * /trash から同じ deleted_at をたどって一緒に戻せるようにする。
+ */
 export async function deleteTask(id: string) {
   const { supabase } = await getAuthedClient();
   const { data: row } = await supabase
@@ -257,11 +265,18 @@ export async function deleteTask(id: string) {
     .select("company_id")
     .eq("id", id)
     .single();
-  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  const deletedAt = new Date().toISOString();
+  // 親と、その生存している子タスクを同じ deleted_at でまとめてゴミ箱へ。
+  const { error } = await supabase
+    .from("tasks")
+    .update({ deleted_at: deletedAt })
+    .or(`id.eq.${id},parent_task_id.eq.${id}`)
+    .is("deleted_at", null);
   if (error) throw new Error(error.message);
   revalidatePath("/");
   revalidatePath("/tasks");
   revalidatePath("/calendar");
   revalidatePath("/focus");
+  revalidatePath("/trash");
   if (row?.company_id) revalidatePath(`/companies/${row.company_id}`);
 }

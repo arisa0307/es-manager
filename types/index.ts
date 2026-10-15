@@ -250,6 +250,8 @@ export type Task = {
   show_on_calendar?: boolean | null;
   /** 今日の最優先(Must)。/focus で赤枠+MUSTバッジ表示。毎朝ブリーフィングで設定。 */
   is_must?: boolean | null;
+  /** ゴミ箱(ソフト削除)日時。null なら生存。 */
+  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -272,6 +274,8 @@ export type CompanyEvent = {
   result?: string | null;
   /** 面接のラウンド(一次/二次/最終/AIなど)。type=interview のとき使用。 */
   interview_round?: string | null;
+  /** ゴミ箱(ソフト削除)日時。null なら生存。 */
+  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -413,6 +417,8 @@ export type GeneralEvent = {
   event_end_time?: string | null;
   location: string | null;
   memo: string | null;
+  /** ゴミ箱(ソフト削除)日時。null なら生存。 */
+  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -178,19 +178,56 @@ export async function POST(request: Request) {
   }
 
   if (event.type === "general") {
+    const generalFields = {
+      title: event.summary,
+      type: "other" as const,
+      ...commonDateFields,
+      location: event.location,
+      memo: event.description,
+    };
+
+    // 重複防止は general_events_no_dup と同条件(時刻ありのみ)。
+    if (commonDateFields.event_time) {
+      const { data: existing, error: findError } = await supabase
+        .from("general_events")
+        .select("id")
+        .eq("user_id", subscription.user_id)
+        .eq("event_date", commonDateFields.event_date)
+        .eq("event_time", commonDateFields.event_time)
+        .eq("title", event.summary)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (findError) return jsonResponse({ error: findError.message }, 500);
+      if (existing) {
+        const { data: updated, error: updateError } = await supabase
+          .from("general_events")
+          .update(generalFields)
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (updateError) return jsonResponse({ error: updateError.message }, 500);
+        return jsonResponse({ updated: true, id: updated.id }, 200);
+      }
+    }
+
     const { data, error } = await supabase
       .from("general_events")
-      .insert({
-        title: event.summary,
-        type: "other",
-        ...commonDateFields,
-        location: event.location,
-        memo: event.description,
-        user_id: subscription.user_id,
-      })
+      .insert({ ...generalFields, user_id: subscription.user_id })
       .select()
       .single();
 
+    if (error?.code === "23505") {
+      const { data: dup } = await supabase
+        .from("general_events")
+        .select("id")
+        .eq("user_id", subscription.user_id)
+        .eq("event_date", commonDateFields.event_date)
+        .eq("event_time", commonDateFields.event_time)
+        .eq("title", event.summary)
+        .is("deleted_at", null)
+        .maybeSingle();
+      return jsonResponse({ error: "event already exists", id: dup?.id ?? null }, 409);
+    }
     if (error) return jsonResponse({ error: error.message }, 500);
     return jsonResponse(data, 201);
   }
@@ -213,20 +250,58 @@ export async function POST(request: Request) {
   }
 
   if (event.type === "company-event") {
+    const companyEventFields = {
+      company_id: event.companyId,
+      type: "other" as const,
+      title: event.summary,
+      schedule_status: "confirmed" as const,
+      ...commonDateFields,
+      memo: event.description,
+    };
+
+    // 重複防止は company_events_no_dup と同条件(時刻ありのみ)。
+    // 既存の生存行があれば新規作成せず更新し、{updated:true,id} を返す。
+    if (commonDateFields.event_time) {
+      const { data: existing, error: findError } = await supabase
+        .from("company_events")
+        .select("id")
+        .eq("user_id", subscription.user_id)
+        .eq("company_id", event.companyId)
+        .eq("event_date", commonDateFields.event_date)
+        .eq("event_time", commonDateFields.event_time)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (findError) return jsonResponse({ error: findError.message }, 500);
+      if (existing) {
+        const { data: updated, error: updateError } = await supabase
+          .from("company_events")
+          .update(companyEventFields)
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (updateError) return jsonResponse({ error: updateError.message }, 500);
+        return jsonResponse({ updated: true, id: updated.id }, 200);
+      }
+    }
+
     const { data, error } = await supabase
       .from("company_events")
-      .insert({
-        company_id: event.companyId,
-        type: "other",
-        title: event.summary,
-        schedule_status: "confirmed",
-        ...commonDateFields,
-        memo: event.description,
-        user_id: subscription.user_id,
-      })
+      .insert({ ...companyEventFields, user_id: subscription.user_id })
       .select()
       .single();
 
+    if (error?.code === "23505") {
+      const { data: dup } = await supabase
+        .from("company_events")
+        .select("id")
+        .eq("user_id", subscription.user_id)
+        .eq("company_id", event.companyId)
+        .eq("event_date", commonDateFields.event_date)
+        .eq("event_time", commonDateFields.event_time)
+        .is("deleted_at", null)
+        .maybeSingle();
+      return jsonResponse({ error: "event already exists", id: dup?.id ?? null }, 409);
+    }
     if (error) return jsonResponse({ error: error.message }, 500);
     return jsonResponse(data, 201);
   }
