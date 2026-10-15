@@ -116,12 +116,12 @@ export function CompanyDetail({
   };
 
   const handleDeleteEvent = (id: string) => {
-    if (!confirm("この日程を削除しますか？")) return;
+    if (!confirm("この日程をゴミ箱へ移動しますか？")) return;
     startTransition(() => deleteCompanyEvent(id));
   };
 
   const handleDeleteTask = (id: string, title: string) => {
-    if (!confirm(`タスク「${title}」を削除しますか？`)) return;
+    if (!confirm(`タスク「${title}」をゴミ箱へ移動しますか？`)) return;
     startTransition(() => deleteTask(id));
   };
 
@@ -390,7 +390,7 @@ export function CompanyDetail({
                         onClick={() => handleDeleteTask(task.id, task.title)}
                         disabled={isPending}
                       >
-                        削除
+                        ゴミ箱へ
                       </Button>
                     </div>
                   </div>
@@ -638,7 +638,7 @@ function EventCard({
               編集
             </Button>
             <Button variant="danger" size="sm" onClick={onDelete} disabled={isPending}>
-              削除
+              ゴミ箱へ
             </Button>
           </div>
         </div>

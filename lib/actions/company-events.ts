@@ -24,6 +24,7 @@ export async function getCompanyEvents(companyId: string) {
     .from("company_events")
     .select("*")
     .eq("company_id", companyId)
+    .is("deleted_at", null)
     .order("event_date", { ascending: true, nullsFirst: false })
     .order("updated_at", { ascending: false });
 
@@ -41,6 +42,7 @@ export async function getCalendarCompanyScheduleEvents(): Promise<
     .select(
       "id, company_id, type, title, schedule_status, event_date, event_time, event_end_time, candidate_slots, companies(name)"
     )
+    .is("deleted_at", null)
     .order("event_date", { ascending: true, nullsFirst: false });
 
   if (isMissingCompanyEventsTable(error)) return [];
@@ -59,6 +61,7 @@ export async function createCompanyEvent(input: CompanyEventInsert) {
   if (isMissingCompanyEventsTable(error)) {
     throw new Error("Supabaseでmigration.sqlを実行してから日程を追加してください");
   }
+  if (isDuplicateEventError(error)) throw new Error(DUPLICATE_EVENT_MESSAGE);
   if (error) throw new Error(error.message);
   revalidateCompanyEventPaths(input.company_id);
   return data;
@@ -79,6 +82,7 @@ export async function updateCompanyEvent(
   if (isMissingCompanyEventsTable(error)) {
     throw new Error("Supabaseでmigration.sqlを実行してから日程を更新してください");
   }
+  if (isDuplicateEventError(error)) throw new Error(DUPLICATE_EVENT_MESSAGE);
   if (error) throw new Error(error.message);
   revalidateCompanyEventPaths(data.company_id);
   return data;
@@ -105,7 +109,8 @@ export async function checkCompanyEventConflicts(input: {
     .from("company_events")
     .select(
       "id, company_id, title, type, schedule_status, event_date, event_time, event_end_time, candidate_slots"
-    );
+    )
+    .is("deleted_at", null);
   if (input.id) companyEventsQuery = companyEventsQuery.neq("id", input.id);
 
   const [companyEventsResult, generalEventsResult, companiesResult] = await Promise.all([
@@ -113,6 +118,7 @@ export async function checkCompanyEventConflicts(input: {
     supabase
       .from("general_events")
       .select("id, title, event_date, event_time")
+      .is("deleted_at", null)
       .not("event_date", "is", null),
     supabase.from("companies").select("id, name"),
   ]);
@@ -205,11 +211,22 @@ export async function deleteCompanyEvent(id: string) {
     .eq("id", id)
     .single();
 
-  const { error } = await supabase.from("company_events").delete().eq("id", id);
+  // ゴミ箱へ(ソフト削除)。
+  const { error } = await supabase
+    .from("company_events")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
   if (isMissingCompanyEventsTable(error)) return;
   if (error) throw new Error(error.message);
 
+  revalidatePath("/trash");
   if (row?.company_id) revalidateCompanyEventPaths(row.company_id);
+}
+
+/** ユニークインデックス(重複予定)違反か。 */
+const DUPLICATE_EVENT_MESSAGE = "同じ日時の予定が既にあります";
+function isDuplicateEventError(error: { code?: string } | null) {
+  return error?.code === "23505";
 }
 
 function isMissingCompanyEventsTable(error: { code?: string; message?: string } | null) {

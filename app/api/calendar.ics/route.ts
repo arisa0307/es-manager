@@ -70,6 +70,7 @@ export async function GET(request: Request) {
           "id, title, deadline, is_done, company_id, est_pomos, show_on_calendar"
         )
         .eq("user_id", subscription.user_id)
+        .is("deleted_at", null)
         .eq("is_done", false)
         .not("deadline", "is", null),
       supabase
@@ -77,11 +78,13 @@ export async function GET(request: Request) {
         .select(
           "id, company_id, type, title, schedule_status, event_date, event_time, event_end_time, candidate_slots, memo, result"
         )
-        .eq("user_id", subscription.user_id),
+        .eq("user_id", subscription.user_id)
+        .is("deleted_at", null),
       supabase
         .from("general_events")
         .select("id, title, type, event_date, event_time, event_end_time, location, memo")
         .eq("user_id", subscription.user_id)
+        .is("deleted_at", null)
         .not("event_date", "is", null),
     ]);
 

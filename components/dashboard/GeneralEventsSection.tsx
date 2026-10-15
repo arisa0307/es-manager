@@ -164,7 +164,7 @@ function confirmDelete(
   id: string,
   startTransition: ReturnType<typeof useTransition>[1]
 ) {
-  if (confirm("この予定を削除しますか？\n（削除は取り消せません）")) {
+  if (confirm("この予定をゴミ箱へ移動しますか？\n（ゴミ箱からいつでも戻せます）")) {
     startTransition(() => deleteGeneralEvent(id));
   }
 }
@@ -224,7 +224,7 @@ function GeneralEventItem({
               編集
             </Button>
             <Button variant="danger" size="sm" onClick={onDelete} disabled={isPending}>
-              削除
+              ゴミ箱へ
             </Button>
           </div>
         </div>

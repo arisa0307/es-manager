@@ -15,6 +15,7 @@ const navItems = [
   { href: "/focus", label: "集中", icon: "◐" },
   { href: "/calendar", label: "カレンダー", icon: "▦" },
   { href: "/templates", label: "テンプレ", icon: "⎘" },
+  { href: "/trash", label: "ゴミ箱", icon: "🗑" },
 ];
 
 export function Sidebar() {

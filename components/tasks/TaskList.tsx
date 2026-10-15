@@ -32,11 +32,15 @@ export function TaskList({
   const [editing, setEditing] = useState<TaskWithCompany | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // 親タスクの直後に子タスクを並べ、子はインデントして表示する。
-  const byId = new Map(tasks.map((t) => [t.id, t]));
+  // 完了済みは折りたたみのコンパクト表示にまとめ、未完了だけをカードで並べる。
+  const activeTasks = tasks.filter((t) => !t.is_done);
+  const doneTasks = tasks.filter((t) => t.is_done);
+
+  // 親タスクの直後に子タスクを並べ、子はインデントして表示する(未完了のみ)。
+  const byId = new Map(activeTasks.map((t) => [t.id, t]));
   const childrenOf = new Map<string, TaskWithCompany[]>();
   const roots: TaskWithCompany[] = [];
-  for (const t of tasks) {
+  for (const t of activeTasks) {
     const pid = t.parent_task_id;
     if (pid && byId.has(pid)) {
       const arr = childrenOf.get(pid) ?? [];
@@ -139,12 +143,61 @@ export function TaskList({
               </div>
               <div className="flex gap-1">
                 <Button variant="ghost" size="sm" onClick={() => setEditing(task)}>編集</Button>
-                <Button variant="danger" size="sm" onClick={() => { if (confirm("削除？")) startTransition(() => deleteTask(task.id)); }}>削除</Button>
+                <Button variant="danger" size="sm" onClick={() => { if (confirm("ゴミ箱へ移動しますか？")) startTransition(() => deleteTask(task.id)); }}>ゴミ箱へ</Button>
               </div>
             </div>
           </Card>
         ))}
       </div>
+
+      {doneTasks.length > 0 && (
+        <details open={ordered.length === 0} className="group">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <span className="transition-transform group-open:rotate-90">▸</span>
+            完了済み（{doneTasks.length}）
+          </summary>
+          <div className={`mt-2 space-y-1 ${isPending ? "opacity-60" : ""}`}>
+            {doneTasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-muted/60"
+              >
+                <input
+                  type="checkbox"
+                  checked
+                  onChange={() => startTransition(() => toggleTaskDone(task.id, false))}
+                  className="h-4 w-4 shrink-0 rounded border-border"
+                />
+                <span className="flex-1 min-w-0 truncate text-muted-foreground line-through">
+                  {task.companies && (
+                    <Link
+                      href={`/companies/${task.companies.id}`}
+                      className="hover:underline"
+                    >
+                      {task.companies.name}
+                    </Link>
+                  )}
+                  {task.companies && "・"}
+                  {task.title}
+                </span>
+                {task.deadline && (
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatDate(task.deadline)}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    if (confirm("ゴミ箱へ移動しますか？")) startTransition(() => deleteTask(task.id));
+                  }}
+                  className="shrink-0 text-xs text-muted-foreground hover:text-red-600"
+                >
+                  ゴミ箱へ
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
 }
