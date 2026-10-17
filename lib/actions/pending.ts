@@ -37,11 +37,13 @@ export async function getPendingResults(): Promise<PendingResult[]> {
     supabase
       .from("company_events")
       .select("id, type, title, event_date, company_id, result, companies(name)")
-      .eq("result", "結果待ち"),
+      .eq("result", "結果待ち")
+      .is("deleted_at", null),
     supabase
       .from("tasks")
       .select("id, title, deadline, company_id, result, companies(name)")
-      .eq("result", "結果待ち"),
+      .eq("result", "結果待ち")
+      .is("deleted_at", null),
   ]);
 
   const items: PendingResult[] = [];

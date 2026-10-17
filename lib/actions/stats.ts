@@ -73,8 +73,12 @@ export async function getSelectionFunnelStats(): Promise<SelectionStats> {
     supabase.from("es_submissions").select("result, kind, companies(name)"),
     supabase
       .from("company_events")
-      .select("type, result, event_date, title, interview_round, companies(name)"),
-    supabase.from("tasks").select("stage, result, title, companies(name)"),
+      .select("type, result, event_date, title, interview_round, companies(name)")
+      .is("deleted_at", null),
+    supabase
+      .from("tasks")
+      .select("stage, result, title, companies(name)")
+      .is("deleted_at", null),
   ]);
 
   const blank = (stage: string): StageStat => ({

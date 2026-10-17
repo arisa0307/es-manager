@@ -29,8 +29,8 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
       item.kind === "company_deadline"
         ? "エントリー締切を削除しますか？"
         : item.kind === "task"
-          ? `タスク「${item.title}」を削除しますか？`
-          : `予定「${item.title}」を削除しますか？`;
+          ? `タスク「${item.title}」をゴミ箱へ移動しますか？`
+          : `予定「${item.title}」をゴミ箱へ移動しますか？`;
     if (!confirm(message)) return;
 
     startTransition(async () => {
@@ -93,7 +93,7 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
             onClick={() => handleDelete(item)}
             disabled={isPending}
             aria-label={`${item.title} を削除`}
-            title="削除"
+            title="ゴミ箱へ移動"
             className="shrink-0 px-2.5 text-muted-foreground transition-colors hover:text-red-600 disabled:opacity-50"
           >
             ✕
