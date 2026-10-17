@@ -64,6 +64,9 @@ body {
     sans-serif;
   font-feature-settings: "palt" 1;
   text-rendering: optimizeLegibility;
+  /* 想定外の横はみ出しでページ全体が横スクロール(スマホで見切れ)しないための保険。
+     各要素側の min-w-0 等で根本対処した上での最後の歯止め。 */
+  overflow-x: hidden;
 }
 
 @layer base {

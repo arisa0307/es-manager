@@ -23,7 +23,7 @@ export function TodayTomorrowSchedule({
           カレンダー →
         </Link>
       </div>
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid sm:grid-cols-2 gap-4 [&>*]:min-w-0">
         <DaySchedule
           label="今日"
           date={today}
@@ -66,9 +66,9 @@ function DaySchedule({
                 href={item.href}
                 className="block rounded-md border border-border bg-muted/20 px-3 py-2 hover:bg-muted/40 transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <Badge className={getScheduleColor(item.kind)}>{item.label}</Badge>
-                  <span className="text-sm font-medium truncate">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Badge className={`${getScheduleColor(item.kind)} shrink-0`}>{item.label}</Badge>
+                  <span className="text-sm font-medium truncate min-w-0">
                     {item.title}
                     {item.time && (
                       <span className="text-muted-foreground font-normal">
