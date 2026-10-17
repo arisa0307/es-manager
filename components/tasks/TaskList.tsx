@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { deleteTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge } from "@/components/ui/Badge";
 import { LinkifiedText } from "@/components/ui/LinkifiedText";
@@ -32,9 +32,40 @@ export function TaskList({
   const [editing, setEditing] = useState<TaskWithCompany | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // 楽観的更新: クリック直後に画面へ反映し、サーバ往復(約1.5〜2秒)を待たせない。
+  // サーバ側の再検証が終わると props が更新され、自動的に実データへ同期される。
+  type TaskAction =
+    | { type: "toggle"; id: string; value: boolean }
+    | { type: "delete"; id: string };
+  const [optimisticTasks, applyOptimistic] = useOptimistic(
+    tasks,
+    (state: TaskWithCompany[], action: TaskAction) => {
+      if (action.type === "toggle") {
+        return state.map((t) =>
+          t.id === action.id ? { ...t, is_done: action.value } : t
+        );
+      }
+      // 削除(ゴミ箱へ): 親と子を一覧から消す
+      return state.filter(
+        (t) => t.id !== action.id && t.parent_task_id !== action.id
+      );
+    }
+  );
+
+  const toggleDone = (id: string, value: boolean) =>
+    startTransition(async () => {
+      applyOptimistic({ type: "toggle", id, value });
+      await toggleTaskDone(id, value);
+    });
+  const removeTask = (id: string) =>
+    startTransition(async () => {
+      applyOptimistic({ type: "delete", id });
+      await deleteTask(id);
+    });
+
   // 完了済みは折りたたみのコンパクト表示にまとめ、未完了だけをカードで並べる。
-  const activeTasks = tasks.filter((t) => !t.is_done);
-  const doneTasks = tasks.filter((t) => t.is_done);
+  const activeTasks = optimisticTasks.filter((t) => !t.is_done);
+  const doneTasks = optimisticTasks.filter((t) => t.is_done);
 
   // 親タスクの直後に子タスクを並べ、子はインデントして表示する(未完了のみ)。
   const byId = new Map(activeTasks.map((t) => [t.id, t]));
@@ -90,7 +121,7 @@ export function TaskList({
               <input
                 type="checkbox"
                 checked={task.is_done}
-                onChange={() => startTransition(() => toggleTaskDone(task.id, !task.is_done))}
+                onChange={() => toggleDone(task.id, !task.is_done)}
                 className="mt-1 h-4 w-4 rounded border-border"
               />
               <div className="flex-1 min-w-0">
@@ -143,7 +174,7 @@ export function TaskList({
               </div>
               <div className="flex gap-1">
                 <Button variant="ghost" size="sm" onClick={() => setEditing(task)}>編集</Button>
-                <Button variant="danger" size="sm" onClick={() => { if (confirm("ゴミ箱へ移動しますか？")) startTransition(() => deleteTask(task.id)); }}>ゴミ箱へ</Button>
+                <Button variant="danger" size="sm" onClick={() => { if (confirm("ゴミ箱へ移動しますか？")) removeTask(task.id); }}>ゴミ箱へ</Button>
               </div>
             </div>
           </Card>
@@ -165,7 +196,7 @@ export function TaskList({
                 <input
                   type="checkbox"
                   checked
-                  onChange={() => startTransition(() => toggleTaskDone(task.id, false))}
+                  onChange={() => toggleDone(task.id, false)}
                   className="h-4 w-4 shrink-0 rounded border-border"
                 />
                 <span className="flex-1 min-w-0 truncate text-muted-foreground line-through">
@@ -187,7 +218,7 @@ export function TaskList({
                 )}
                 <button
                   onClick={() => {
-                    if (confirm("ゴミ箱へ移動しますか？")) startTransition(() => deleteTask(task.id));
+                    if (confirm("ゴミ箱へ移動しますか？")) removeTask(task.id);
                   }}
                   className="shrink-0 text-xs text-muted-foreground hover:text-red-600"
                 >

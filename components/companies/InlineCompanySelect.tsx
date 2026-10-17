@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { updateCompany } from "@/lib/actions/companies";
 import { cn } from "@/lib/utils";
 import type { CompanyStatus, CompanyUpdate, DesiredLevel } from "@/types";
@@ -31,7 +31,9 @@ export function InlineCompanySelect({
   emptyLabel = "未設定",
 }: Props) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  // 選択を即座に反映(サーバ往復を待たせない)。再検証後に props で同期される。
+  const [optimisticValue, setOptimisticValue] = useOptimistic(value);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const raw = e.target.value;
@@ -42,6 +44,7 @@ export function InlineCompanySelect({
         ? { status: next as CompanyStatus }
         : { desired_level: next as DesiredLevel | null };
     startTransition(async () => {
+      setOptimisticValue(next);
       await updateCompany(companyId, patch);
       router.refresh();
     });
@@ -50,14 +53,13 @@ export function InlineCompanySelect({
   return (
     <span className="relative inline-flex items-center">
       <select
-        value={value ?? ""}
+        value={optimisticValue ?? ""}
         onChange={handleChange}
-        disabled={isPending}
         aria-label={field === "status" ? "ステータスを変更" : "志望度を変更"}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "appearance-none cursor-pointer rounded-md border border-transparent py-0.5 pl-2 pr-5 text-xs font-medium transition-colors hover:border-border focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50",
-          value ? colorClass : "bg-muted text-muted-foreground"
+          "appearance-none cursor-pointer rounded-md border border-transparent py-0.5 pl-2 pr-5 text-xs font-medium transition-colors hover:border-border focus:outline-none focus:ring-1 focus:ring-accent",
+          optimisticValue ? colorClass : "bg-muted text-muted-foreground"
         )}
       >
         {allowEmpty && <option value="">{emptyLabel}</option>}

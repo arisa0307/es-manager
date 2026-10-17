@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { finishPomodoro, startPomodoro } from "@/lib/actions/pomodoro";
 import {
   carryOverTask,
@@ -112,11 +119,25 @@ export function FocusBoard({
   plannedPomos: number;
 }) {
   const router = useRouter();
-  const activeTasks = tasks.filter((t) => !t.is_done);
+  // 楽観的更新: 完了/持ち越し/戻すをクリック直後に反映し、サーバ往復を待たせない。
+  const [, startTaskTransition] = useTransition();
+  type FocusAction =
+    | { type: "complete" | "undo"; id: string; done: boolean }
+    | { type: "carry"; id: string };
+  const [optimisticTasks, applyTaskOptimistic] = useOptimistic(
+    tasks,
+    (state: TaskWithCompany[], action: FocusAction) => {
+      if (action.type === "carry") return state.filter((t) => t.id !== action.id);
+      return state.map((t) =>
+        t.id === action.id ? { ...t, is_done: action.done } : t
+      );
+    }
+  );
+  const activeTasks = optimisticTasks.filter((t) => !t.is_done);
   const normalTasks = activeTasks.filter((t) => (t.est_pomos ?? 1) > 0);
   const smallTasks = activeTasks.filter((t) => (t.est_pomos ?? 1) === 0);
   // 完了済みは当日のうちは残す(誤操作に気づけるよう取り消し線+戻すボタンで表示)。
-  const doneTasks = tasks.filter((t) => t.is_done);
+  const doneTasks = optimisticTasks.filter((t) => t.is_done);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [active, setActive] = useState<ActiveTimer | null>(null);
@@ -238,44 +259,55 @@ export function FocusBoard({
   }, [active, router]);
 
   const completeTask = useCallback(
-    async (id: string, withNote: boolean) => {
+    (id: string, withNote: boolean) => {
+      const n = withNote ? note : null;
       setPending(true);
-      try {
-        await completeTaskWithNote(id, withNote ? note : null);
+      startTaskTransition(async () => {
+        applyTaskOptimistic({ type: "complete", id, done: true });
         setNote("");
-        router.refresh();
-      } finally {
-        setPending(false);
-      }
+        try {
+          await completeTaskWithNote(id, n);
+          router.refresh();
+        } finally {
+          setPending(false);
+        }
+      });
     },
-    [note, router]
+    [note, router, applyTaskOptimistic]
   );
 
   const carryOver = useCallback(
-    async (id: string, withNote: boolean) => {
+    (id: string, withNote: boolean) => {
+      const n = withNote ? note : null;
       setPending(true);
-      try {
-        await carryOverTask(id, withNote ? note : null);
+      startTaskTransition(async () => {
+        applyTaskOptimistic({ type: "carry", id });
         setNote("");
-        router.refresh();
-      } finally {
-        setPending(false);
-      }
+        try {
+          await carryOverTask(id, n);
+          router.refresh();
+        } finally {
+          setPending(false);
+        }
+      });
     },
-    [note, router]
+    [note, router, applyTaskOptimistic]
   );
 
   const undoComplete = useCallback(
-    async (id: string) => {
+    (id: string) => {
       setPending(true);
-      try {
-        await toggleTaskDone(id, false);
-        router.refresh();
-      } finally {
-        setPending(false);
-      }
+      startTaskTransition(async () => {
+        applyTaskOptimistic({ type: "undo", id, done: false });
+        try {
+          await toggleTaskDone(id, false);
+          router.refresh();
+        } finally {
+          setPending(false);
+        }
+      });
     },
-    [router]
+    [router, applyTaskOptimistic]
   );
 
   // 完了数はサーバの真値。ポモ完了ごとに router.refresh() で更新される。

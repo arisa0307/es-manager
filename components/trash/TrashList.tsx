@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { purgeTrashedItem, restoreTrashedItem } from "@/lib/actions/trash";
 import { trashKindLabel, type TrashItem } from "@/lib/trash-types";
 import { Badge } from "@/components/ui/Badge";
@@ -12,14 +12,21 @@ import { formatDateFull } from "@/lib/utils";
 export function TrashList({ items }: { items: TrashItem[] }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // 「戻す/完全に削除」を即座に一覧から消す。失敗時は props 同期で自動的に戻る。
+  const [optimisticItems, removeOptimistic] = useOptimistic(
+    items,
+    (state: TrashItem[], key: string) =>
+      state.filter((i) => `${i.kind}-${i.id}` !== key)
+  );
 
   if (items.length === 0) {
     return <EmptyState title="ゴミ箱は空です" />;
   }
 
-  const run = (fn: () => Promise<void>) => {
+  const run = (item: TrashItem, fn: () => Promise<void>) => {
     setError(null);
     startTransition(async () => {
+      removeOptimistic(`${item.kind}-${item.id}`);
       try {
         await fn();
       } catch (e) {
@@ -35,8 +42,8 @@ export function TrashList({ items }: { items: TrashItem[] }) {
           {error}
         </p>
       )}
-      <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
-        {items.map((item) => (
+      <div className="space-y-2">
+        {optimisticItems.map((item) => (
           <Card key={`${item.kind}-${item.id}`}>
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
@@ -56,7 +63,7 @@ export function TrashList({ items }: { items: TrashItem[] }) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => run(() => restoreTrashedItem(item.kind, item.id))}
+                  onClick={() => run(item, () => restoreTrashedItem(item.kind, item.id))}
                   disabled={isPending}
                 >
                   戻す
@@ -66,7 +73,7 @@ export function TrashList({ items }: { items: TrashItem[] }) {
                   size="sm"
                   onClick={() => {
                     if (confirm("完全に削除しますか？この操作は元に戻せません。")) {
-                      run(() => purgeTrashedItem(item.kind, item.id));
+                      run(item, () => purgeTrashedItem(item.kind, item.id));
                     }
                   }}
                   disabled={isPending}
