@@ -19,7 +19,7 @@ export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
 export const COMPANY_RESULTS = ["", "進行中", "内定", "落選", "辞退"] as const;
 export type CompanyResult = (typeof COMPANY_RESULTS)[number];
 
-export const DESIRED_LEVELS = ["S", "A", "B", "C", "D", "ワンチャン枠", "多様性", "選考練習用"] as const;
+export const DESIRED_LEVELS = ["S", "A", "B", "C", "D", "ワンチャン枠", "多様性", "練習用"] as const;
 export type DesiredLevel = (typeof DESIRED_LEVELS)[number];
 
 export const DESIRED_LEVEL_LABELS: Record<DesiredLevel, string> = {
@@ -30,7 +30,7 @@ export const DESIRED_LEVEL_LABELS: Record<DesiredLevel, string> = {
   D: "D",
   ワンチャン枠: "ワンチャン枠",
   多様性: "多様性",
-  選考練習用: "選考練習用",
+  練習用: "練習用",
 };
 
 export const TASK_PRIORITIES = ["high", "mid", "low"] as const;

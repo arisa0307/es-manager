@@ -7,12 +7,6 @@ import { EnvBanner } from "@/components/EnvBanner";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname === "/login" || pathname === "/signup";
-  // /focus はポモドーロ専用の全画面ページ。サイドバーを出さず単体で使う。
-  const isBarePage = pathname === "/focus";
-
-  if (isBarePage) {
-    return <>{children}</>;
-  }
 
   if (isAuthPage) {
     return (

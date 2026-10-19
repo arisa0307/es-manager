@@ -114,7 +114,7 @@ const LEVEL_COLORS: Record<DesiredLevel, string> = {
   D: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
   ワンチャン枠: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
   多様性: "bg-teal-500/10 text-teal-700 dark:text-teal-300",
-  選考練習用: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  練習用: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
 };
 
 export function getLevelColor(level: DesiredLevel | null): string {

@@ -323,14 +323,9 @@ export function FocusBoard({
   const isBreak = active?.kind === "short_break" || active?.kind === "long_break";
 
   return (
-    <div className="min-h-screen px-4 py-6 sm:py-10 max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ← a.t
-        </Link>
+        <h1 className="text-lg font-semibold">集中</h1>
         <div className="text-sm text-muted-foreground">
           今日：完了{" "}
           <span className="font-semibold text-foreground">{doneToday}</span> /
