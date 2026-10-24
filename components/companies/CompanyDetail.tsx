@@ -71,6 +71,9 @@ export function CompanyDetail({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [showPastEvents, setShowPastEvents] = useState(false);
+  // 既定は畳んだ状態。畳んでいる間は件名だけを一覧表示して中身が分かるようにする。
+  const [tasksCollapsed, setTasksCollapsed] = useState(true);
+  const [esCollapsed, setEsCollapsed] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
@@ -287,13 +290,22 @@ export function CompanyDetail({
       <Card id="company-tasks">
         <SectionHeader
           title="タスク"
+          count={tasks.length}
+          collapsed={tasksCollapsed}
+          onToggle={() => setTasksCollapsed((v) => !v)}
           action={
-            <Button size="sm" onClick={() => setShowTask(!showTask)}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setTasksCollapsed(false);
+                setShowTask(!showTask);
+              }}
+            >
               {showTask ? "閉じる" : "+ 追加"}
             </Button>
           }
         />
-        {showTask && (
+        {!tasksCollapsed && showTask && (
           <div className="mb-4 pb-4 border-b border-border">
             <TaskForm
               companies={[{ id: company.id, name: company.name }]}
@@ -303,7 +315,32 @@ export function CompanyDetail({
             />
           </div>
         )}
-        {tasks.length === 0 ? (
+        {tasksCollapsed ? (
+          tasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-1">タスクがありません</p>
+          ) : (
+            <ul className="space-y-1">
+              {tasks.map((task) => (
+                <li
+                  key={task.id}
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <span className="text-muted-foreground/60">・</span>
+                  <span
+                    className={`flex-1 min-w-0 truncate ${task.is_done ? "line-through" : "text-foreground"}`}
+                  >
+                    {task.title}
+                  </span>
+                  {task.result && (
+                    <Badge className={`${getSelectionResultColor(task.result)} shrink-0`}>
+                      {task.result}
+                    </Badge>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )
+        ) : tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">タスクがありません</p>
         ) : (
           <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
@@ -404,37 +441,77 @@ export function CompanyDetail({
       <Card id="company-es">
         <SectionHeader
           title="ES"
+          count={esSubmissions.length}
+          collapsed={esCollapsed}
+          onToggle={() => setEsCollapsed((v) => !v)}
           action={
-            <Button size="sm" onClick={() => setShowES(!showES)}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEsCollapsed(false);
+                setShowES(!showES);
+              }}
+            >
               {showES ? "閉じる" : "+ ES提出"}
             </Button>
           }
         />
-        <p className="-mt-2 mb-3 text-xs text-muted-foreground">
-          インターン用・本選考用など「提出」ごとに作り、設問・結果・PDFをまとめます
-        </p>
-        {showES && (
-          <div className="mb-4 pb-4 border-b border-border">
-            <ESSubmissionForm
-              companies={[{ id: company.id, name: company.name }]}
-              defaultCompanyId={company.id}
-              onSuccess={() => setShowES(false)}
-              onCancel={() => setShowES(false)}
-            />
-          </div>
-        )}
-        {esSubmissions.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">ES提出がありません</p>
-        ) : (
-          <div className="space-y-3">
-            {esSubmissions.map((s) => (
-              <ESSubmissionCard
-                key={s.id}
-                submission={s}
-                companies={[{ id: company.id, name: company.name }]}
-              />
-            ))}
-          </div>
+        {esCollapsed &&
+          (esSubmissions.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-1">ES提出がありません</p>
+          ) : (
+            <ul className="space-y-1">
+              {esSubmissions.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <span className="text-muted-foreground/60">・</span>
+                  <span className="flex-1 min-w-0 truncate text-foreground">
+                    {s.title || "ES提出"}
+                    <span className="text-muted-foreground">
+                      （{s.phase}
+                      {s.kind === "アンケート" ? "・アンケート" : ""}）
+                    </span>
+                  </span>
+                  {s.result && (
+                    <Badge className={`${getSelectionResultColor(s.result)} shrink-0`}>
+                      {s.result}
+                    </Badge>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ))}
+        {!esCollapsed && (
+          <>
+            <p className="-mt-2 mb-3 text-xs text-muted-foreground">
+              インターン用・本選考用など「提出」ごとに作り、設問・結果・PDFをまとめます
+            </p>
+            {showES && (
+              <div className="mb-4 pb-4 border-b border-border">
+                <ESSubmissionForm
+                  companies={[{ id: company.id, name: company.name }]}
+                  defaultCompanyId={company.id}
+                  onSuccess={() => setShowES(false)}
+                  onCancel={() => setShowES(false)}
+                />
+              </div>
+            )}
+            {esSubmissions.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">ES提出がありません</p>
+            ) : (
+              <div className="space-y-3">
+                {esSubmissions.map((s) => (
+                  <ESSubmissionCard
+                    key={s.id}
+                    submission={s}
+                    companies={[{ id: company.id, name: company.name }]}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </Card>
 
@@ -519,13 +596,39 @@ function getEventTypeColor(type: CompanyEventType): string {
 function SectionHeader({
   title,
   action,
+  count,
+  collapsed,
+  onToggle,
 }: {
   title: string;
   action?: React.ReactNode;
+  /** 件数バッジ(折りたたみ時に中身が分かるように) */
+  count?: number;
+  collapsed?: boolean;
+  onToggle?: () => void;
 }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <h2 className="text-sm font-medium text-foreground">{title}</h2>
+      {onToggle ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex items-center gap-1.5 text-sm font-medium text-foreground"
+          aria-expanded={!collapsed}
+        >
+          <span
+            className={`text-xs text-muted-foreground transition-transform ${collapsed ? "" : "rotate-90"}`}
+          >
+            ▸
+          </span>
+          {title}
+          {typeof count === "number" && (
+            <span className="text-muted-foreground font-normal">（{count}）</span>
+          )}
+        </button>
+      ) : (
+        <h2 className="text-sm font-medium text-foreground">{title}</h2>
+      )}
       {action}
     </div>
   );
