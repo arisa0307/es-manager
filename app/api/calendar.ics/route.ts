@@ -2,6 +2,11 @@ import {
   buildCompanyEventScheduleEntries,
   getCompanyEventScheduleLabel,
 } from "@/lib/company-event-utils";
+import {
+  getCalendarFeedName,
+  isImportantCompanyEntry,
+  parseCalendarFeedScope,
+} from "@/lib/calendar-feed-scope";
 import { buildIcsCalendar } from "@/lib/calendar-ics";
 import { shouldShowTaskOnCalendar } from "@/lib/calendar-task-visibility";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -35,8 +40,10 @@ function badRequest(message: string, status = 400) {
 }
 
 export async function GET(request: Request) {
-  const token = new URL(request.url).searchParams.get("token")?.trim();
+  const { searchParams } = new URL(request.url);
+  const token = searchParams.get("token")?.trim();
   if (!token) return badRequest("token is required");
+  const scope = parseCalendarFeedScope(searchParams.get("scope"));
 
   let supabase;
   try {
@@ -110,7 +117,7 @@ export async function GET(request: Request) {
     return name ? `${name} ` : "";
   };
 
-  const events = [
+  const nonCompanyEventEntries = [
     ...(companies ?? [])
       .filter((c) => c.deadline)
       .map((c) => ({
@@ -145,30 +152,42 @@ export async function GET(request: Request) {
       endTime: g.event_end_time ?? null,
       url: appBaseUrl ? `${appBaseUrl}/` : null,
     })),
-    ...(companyEvents ?? []).flatMap((event) =>
+  ];
+
+  const companyEventEntries = (companyEvents ?? [])
+    .flatMap((event) =>
       buildCompanyEventScheduleEntries(event).map((entry) => ({
-        uid: `company-event-${entry.id}`,
-        title: `${COMPANY_EVENT_ICONS[event.type as CompanyEventType] ?? "📌"} ${getCompanyEventScheduleLabel(event.type as CompanyEventType, entry)}｜${companySuffix(event.company_id)}${event.title}`,
-        description: [
-          byCompanyId.get(event.company_id) && `企業: ${byCompanyId.get(event.company_id)}`,
-          event.result && `結果: ${event.result}`,
-          event.memo,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        date: entry.date,
-        startTime: entry.startTime,
-        endTime: entry.endTime,
-        url: appBaseUrl ? `${appBaseUrl}/companies/${event.company_id}` : null,
+        important: isImportantCompanyEntry(event.type as CompanyEventType, entry),
+        icsEvent: {
+          uid: `company-event-${entry.id}`,
+          title: `${COMPANY_EVENT_ICONS[event.type as CompanyEventType] ?? "📌"} ${getCompanyEventScheduleLabel(event.type as CompanyEventType, entry)}｜${companySuffix(event.company_id)}${event.title}`,
+          description: [
+            byCompanyId.get(event.company_id) && `企業: ${byCompanyId.get(event.company_id)}`,
+            event.result && `結果: ${event.result}`,
+            event.memo,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          date: entry.date,
+          startTime: entry.startTime,
+          endTime: entry.endTime,
+          url: appBaseUrl ? `${appBaseUrl}/companies/${event.company_id}` : null,
+        },
       }))
-    ),
+    )
+    .filter(({ important }) => scope === "all" || important === (scope === "important"))
+    .map(({ icsEvent }) => icsEvent);
+
+  const events = [
+    ...(scope === "important" ? [] : nonCompanyEventEntries),
+    ...companyEventEntries,
   ].sort((a, b) => {
     const date = a.date.localeCompare(b.date);
     if (date !== 0) return date;
     return a.title.localeCompare(b.title, "ja");
   });
 
-  const ics = buildIcsCalendar(events, "a.t 就活予定");
+  const ics = buildIcsCalendar(events, getCalendarFeedName(scope));
 
   return new Response(ics, {
     headers: {

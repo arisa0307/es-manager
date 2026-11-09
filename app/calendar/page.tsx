@@ -120,7 +120,9 @@ export default async function CalendarPage() {
         <div className="space-y-3">
           <h2 className="text-sm font-medium">Macカレンダー連携（自動同期）</h2>
           <p className="text-xs text-muted-foreground">
-            購読URLをMacカレンダーの「新規カレンダー購読」に貼り付けると自動同期できます。
+            2つのURLをそれぞれMacカレンダーの「新規カレンダー購読」に貼り付けると自動同期できます。
+            色はカレンダーごとに決まるので、購読時に「重要な予定」だけ目立つ色を選んでください。
+            以前の購読URLを登録済みの場合は、予定が重複しないよう先に削除してください。
           </p>
           {!appBaseUrl ? (
             <p className="text-xs text-red-600">
@@ -130,10 +132,20 @@ export default async function CalendarPage() {
             <p className="text-xs text-red-600">{feedError}</p>
           ) : feedToken ? (
             <div className="space-y-2">
-              <CopyableInput
-                name="calendar_feed_url"
-                defaultValue={`${appBaseUrl}/api/calendar.ics?token=${feedToken}`}
-              />
+              <div className="space-y-1">
+                <p className="text-xs font-medium">重要な予定（面接・GD）</p>
+                <CopyableInput
+                  name="calendar_feed_url_important"
+                  defaultValue={`${appBaseUrl}/api/calendar.ics?token=${feedToken}&scope=important`}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium">その他の予定</p>
+                <CopyableInput
+                  name="calendar_feed_url_other"
+                  defaultValue={`${appBaseUrl}/api/calendar.ics?token=${feedToken}&scope=other`}
+                />
+              </div>
               <form action={rotateCalendarFeedSubscription}>
                 <Button type="submit" variant="secondary" size="sm">
                   URLを再発行
