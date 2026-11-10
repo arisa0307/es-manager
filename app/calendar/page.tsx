@@ -133,7 +133,7 @@ export default async function CalendarPage() {
           ) : feedToken ? (
             <div className="space-y-2">
               <div className="space-y-1">
-                <p className="text-xs font-medium">重要な予定（面接・GD）</p>
+                <p className="text-xs font-medium">重要な予定（面接・GD・インターン）</p>
                 <CopyableInput
                   name="calendar_feed_url_important"
                   defaultValue={`${appBaseUrl}/api/calendar.ics?token=${feedToken}&scope=important`}

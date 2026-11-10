@@ -8,7 +8,11 @@ import type { CompanyEventType } from "@/types";
 export type CalendarFeedScope = "all" | "important" | "other";
 
 /** 重要な予定として別カレンダーに出す企業イベントの種別 */
-const IMPORTANT_COMPANY_EVENT_TYPES: readonly CompanyEventType[] = ["interview", "gd"];
+const IMPORTANT_COMPANY_EVENT_TYPES: readonly CompanyEventType[] = [
+  "interview",
+  "gd",
+  "internship",
+];
 
 export function parseCalendarFeedScope(value: string | null): CalendarFeedScope {
   return value === "important" || value === "other" ? value : "all";
