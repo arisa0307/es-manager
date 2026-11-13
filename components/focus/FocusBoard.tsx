@@ -20,8 +20,14 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { formatDate, isOverdue } from "@/lib/utils";
-import type { PomodoroKind, TaskWithCompany } from "@/types";
+import {
+  FOCUS_FIXED_SUBJECTS,
+  type FocusFixedSubject,
+  type PomodoroKind,
+  type TaskWithCompany,
+} from "@/types";
 
 const FOCUS_MIN = 25;
 const SHORT_BREAK_MIN = 5;
@@ -31,6 +37,8 @@ const STORAGE_KEY = "atFocusTimer";
 type ActiveTimer = {
   sessionId: string;
   taskId: string | null;
+  /** 固定の対象(基本情報技術者など)を選んでいたときのラベル */
+  subject?: FocusFixedSubject | null;
   kind: PomodoroKind;
   /** 開始時刻(epoch ms)。残り時間はここから計算するので再読込しても継続する。 */
   startMs: number;
@@ -58,6 +66,21 @@ function clearActiveStorage() {
   } catch {
     // 無視
   }
+}
+
+/** ポモの対象。今日の並び以外のタスクや、固定の対象も選べる。 */
+type FocusTarget =
+  | { type: "task"; task: TaskWithCompany }
+  | { type: "subject"; subject: FocusFixedSubject };
+
+/** <select> の value 用キー */
+function targetKey(t: FocusTarget | null): string {
+  if (!t) return "";
+  return t.type === "task" ? `task:${t.task.id}` : `subject:${t.subject}`;
+}
+
+function taskLabel(t: TaskWithCompany): string {
+  return t.companies ? `${t.companies.name}・${t.title}` : t.title;
 }
 
 function fmt(sec: number): string {
@@ -111,10 +134,12 @@ function notify(kind: PomodoroKind) {
 
 export function FocusBoard({
   tasks,
+  openTasks,
   completedToday,
   plannedPomos,
 }: {
   tasks: TaskWithCompany[];
+  openTasks: TaskWithCompany[];
   completedToday: number;
   plannedPomos: number;
 }) {
@@ -139,7 +164,8 @@ export function FocusBoard({
   // 完了済みは当日のうちは残す(誤操作に気づけるよう取り消し線+戻すボタンで表示)。
   const doneTasks = optimisticTasks.filter((t) => t.is_done);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // 選択中の対象のキー("task:<id>" / "subject:<ラベル>")。null なら既定(並びの先頭)。
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [active, setActive] = useState<ActiveTimer | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [pending, setPending] = useState(false);
@@ -149,7 +175,37 @@ export function FocusBoard({
   const completingRef = useRef(false);
   const completeRef = useRef<() => void>(() => {});
 
-  const currentTask = normalTasks[currentIndex] ?? null;
+  // 今日の並び以外の未完了タスク(ピッカーの「その他」に出す)。
+  const plannedIds = new Set(optimisticTasks.map((t) => t.id));
+  const otherTasks = openTasks.filter((t) => !plannedIds.has(t.id));
+
+  const resolveTarget = (key: string | null): FocusTarget | null => {
+    if (key?.startsWith("subject:")) {
+      const subject = key.slice("subject:".length);
+      if ((FOCUS_FIXED_SUBJECTS as readonly string[]).includes(subject)) {
+        return { type: "subject", subject: subject as FocusFixedSubject };
+      }
+    } else if (key?.startsWith("task:")) {
+      const id = key.slice("task:".length);
+      const task =
+        activeTasks.find((t) => t.id === id) ??
+        otherTasks.find((t) => t.id === id);
+      if (task) return { type: "task", task };
+    }
+    return null;
+  };
+  // 選んだタスクが完了・持ち越しで消えたら、並びの先頭(なければ固定の先頭)に戻す。
+  const target: FocusTarget =
+    resolveTarget(selectedKey) ??
+    (normalTasks[0]
+      ? { type: "task", task: normalTasks[0] }
+      : { type: "subject", subject: FOCUS_FIXED_SUBJECTS[0] });
+  const currentTask = target.type === "task" ? target.task : null;
+  const currentSubject = target.type === "subject" ? target.subject : null;
+  const currentKey = targetKey(target);
+  const currentPlanIndex = currentTask
+    ? normalTasks.findIndex((t) => t.id === currentTask.id)
+    : -1;
 
   // 再読込・タブ復帰時に、進行中タイマーを開始時刻から復元する。
   useEffect(() => {
@@ -185,7 +241,8 @@ export function FocusBoard({
           }
         }
         const taskId = currentTask?.id ?? null;
-        const session = await startPomodoro(taskId, kind);
+        const subject = currentSubject;
+        const session = await startPomodoro(taskId, kind, subject);
         const durationSec =
           (kind === "focus"
             ? FOCUS_MIN
@@ -195,6 +252,7 @@ export function FocusBoard({
         const timer: ActiveTimer = {
           sessionId: session.id,
           taskId,
+          subject,
           kind,
           startMs: Date.parse(session.started_at),
           durationSec,
@@ -206,7 +264,7 @@ export function FocusBoard({
         setPending(false);
       }
     },
-    [currentTask, pending]
+    [currentTask, currentSubject, pending]
   );
 
   const handleComplete = useCallback(async () => {
@@ -346,7 +404,9 @@ export function FocusBoard({
           {active ? fmt(remaining) : fmt(FOCUS_MIN * 60)}
         </p>
         <p className="mb-4 text-sm text-muted-foreground min-h-5">
-          {currentTask ? (
+          {target.type === "subject" ? (
+            <span className="text-foreground font-medium">{target.subject}</span>
+          ) : currentTask ? (
             <>
               {currentTask.is_must && (
                 <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 font-semibold mr-1.5">
@@ -363,15 +423,58 @@ export function FocusBoard({
               )}{" "}
               {currentTask.title}
             </>
-          ) : (
-            "今日の並びにタスクがありません"
-          )}
+          ) : null}
         </p>
+        <div className="mx-auto mb-4 max-w-md text-left">
+          <label
+            htmlFor="focus-target"
+            className="mb-1 block text-xs text-muted-foreground"
+          >
+            ポモの対象
+          </label>
+          <Select
+            id="focus-target"
+            value={currentKey}
+            onChange={(e) => setSelectedKey(e.target.value)}
+            disabled={pending || !!active}
+          >
+            {normalTasks.length > 0 && (
+              <optgroup label="今日の並び">
+                {normalTasks.map((t) => (
+                  <option key={t.id} value={`task:${t.id}`}>
+                    {taskLabel(t)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <optgroup label="いつでも">
+              {FOCUS_FIXED_SUBJECTS.map((s) => (
+                <option key={s} value={`subject:${s}`}>
+                  {s}
+                </option>
+              ))}
+            </optgroup>
+            {(smallTasks.length > 0 || otherTasks.length > 0) && (
+              <optgroup label="その他の未完了タスク">
+                {[...smallTasks, ...otherTasks].map((t) => (
+                  <option key={t.id} value={`task:${t.id}`}>
+                    {taskLabel(t)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </Select>
+          {active && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              対象はタイマー停止中に変更できます
+            </p>
+          )}
+        </div>
         <div className="flex flex-wrap justify-center gap-2">
           {!active && (
             <Button
               onClick={() => startTimer("focus")}
-              disabled={pending || !currentTask}
+              disabled={pending}
             >
               ▶ 集中を開始
             </Button>
@@ -381,10 +484,14 @@ export function FocusBoard({
               ■ 中断
             </Button>
           )}
-          {currentTask && normalTasks.length > 1 && (
+          {!active && normalTasks.length > 1 && (
             <Button
               variant="ghost"
-              onClick={() => setCurrentIndex((i) => (i + 1) % normalTasks.length)}
+              onClick={() => {
+                const next =
+                  normalTasks[(currentPlanIndex + 1) % normalTasks.length];
+                setSelectedKey(`task:${next.id}`);
+              }}
               disabled={pending}
             >
               次へ →
@@ -408,13 +515,15 @@ export function FocusBoard({
               >
                 ✓ 完了
               </Button>
-              <Button
-                variant="ghost"
-                onClick={() => carryOver(currentTask.id, true)}
-                disabled={pending}
-              >
-                ↩ 持ち越し
-              </Button>
+              {currentPlanIndex >= 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => carryOver(currentTask.id, true)}
+                  disabled={pending}
+                >
+                  ↩ 持ち越し
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -485,10 +594,12 @@ export function FocusBoard({
               <Card
                 key={t.id}
                 hover
-                className={`cursor-pointer ${i === currentIndex ? "ring-2 ring-accent" : ""} ${
+                className={`cursor-pointer ${t.id === currentTask?.id ? "ring-2 ring-accent" : ""} ${
                   t.is_must && !t.is_done ? "border-2 border-red-500" : ""
                 }`}
-                onClick={() => setCurrentIndex(i)}
+                onClick={() => {
+                  if (!active) setSelectedKey(`task:${t.id}`);
+                }}
               >
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 text-xs font-mono text-muted-foreground w-5 text-right">

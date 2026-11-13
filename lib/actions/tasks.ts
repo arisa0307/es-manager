@@ -67,6 +67,24 @@ export async function getFocusTasks(): Promise<TaskWithCompany[]> {
   return (data ?? []) as unknown as TaskWithCompany[];
 }
 
+/**
+ * /focus のポモ対象ピッカー用: 未完了のタスク(待ちを除く)を締切順で返す。
+ * 今日の並びに入っていないタスクにもポモを回せるようにするため。
+ */
+export async function getOpenTasksForFocus(): Promise<TaskWithCompany[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*, companies(id, name, desired_level)")
+    .is("deleted_at", null)
+    .eq("is_done", false)
+    .or("kind.is.null,kind.neq.waiting")
+    .order("deadline", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as TaskWithCompany[];
+}
+
 function sortTasks<T extends {
   deadline: string | null;
   companies: { desired_level: DesiredLevel | null } | null;

@@ -1,5 +1,5 @@
 import { getTodayPomodoroCount } from "@/lib/actions/pomodoro";
-import { getFocusTasks } from "@/lib/actions/tasks";
+import { getFocusTasks, getOpenTasksForFocus } from "@/lib/actions/tasks";
 import { FocusBoard } from "@/components/focus/FocusBoard";
 import { Card } from "@/components/ui/Card";
 import type { TaskWithCompany } from "@/types";
@@ -8,12 +8,14 @@ export const dynamic = "force-dynamic";
 
 export default async function FocusPage() {
   let tasks: TaskWithCompany[] = [];
+  let openTasks: TaskWithCompany[] = [];
   let completedToday = 0;
   let error: string | null = null;
 
   try {
-    [tasks, completedToday] = await Promise.all([
+    [tasks, openTasks, completedToday] = await Promise.all([
       getFocusTasks(),
+      getOpenTasksForFocus(),
       getTodayPomodoroCount(),
     ]);
   } catch (e) {
@@ -35,6 +37,7 @@ export default async function FocusPage() {
   return (
     <FocusBoard
       tasks={tasks}
+      openTasks={openTasks}
       completedToday={completedToday}
       plannedPomos={plannedPomos}
     />

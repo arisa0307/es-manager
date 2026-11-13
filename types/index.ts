@@ -363,6 +363,13 @@ export type TaskInsert = {
 
 export type TaskUpdate = Partial<TaskInsert>;
 
+/**
+ * /focus でタスクに入っていなくても常に選べるポモの対象。
+ * 選んだときは pomodoro_sessions.task_id=null、note にこのラベルを記録する。
+ */
+export const FOCUS_FIXED_SUBJECTS = ["基本情報技術者", "国試", "Webテスト対策"] as const;
+export type FocusFixedSubject = (typeof FOCUS_FIXED_SUBJECTS)[number];
+
 /** ポモドーロの1セッション(集中/休憩)。/focus ページで記録する。 */
 export const POMODORO_KINDS = ["focus", "short_break", "long_break"] as const;
 export type PomodoroKind = (typeof POMODORO_KINDS)[number];

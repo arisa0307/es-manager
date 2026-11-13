@@ -4,20 +4,31 @@ import { revalidatePath } from "next/cache";
 import { getAuthedClient } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getFocusDayStartIso } from "@/lib/utils";
-import type { PomodoroKind } from "@/types";
+import { FOCUS_FIXED_SUBJECTS, type PomodoroKind } from "@/types";
 
-/** ポモドーロ開始。started_at を DB に記録し、id と開始時刻を返す。 */
+/**
+ * ポモドーロ開始。started_at を DB に記録し、id と開始時刻を返す。
+ * subject は固定の対象(基本情報技術者など)を選んだときのラベルで、note に記録する。
+ */
 export async function startPomodoro(
   taskId: string | null,
-  kind: PomodoroKind = "focus"
+  kind: PomodoroKind = "focus",
+  subject: string | null = null
 ) {
+  if (
+    subject !== null &&
+    !(FOCUS_FIXED_SUBJECTS as readonly string[]).includes(subject)
+  ) {
+    throw new Error("不正なポモの対象です");
+  }
   const { supabase, user } = await getAuthedClient();
   const { data, error } = await supabase
     .from("pomodoro_sessions")
     .insert({
       user_id: user.id,
-      task_id: taskId,
+      task_id: subject ? null : taskId,
       kind,
+      note: subject,
       started_at: new Date().toISOString(),
     })
     .select("id, started_at")
