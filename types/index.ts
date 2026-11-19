@@ -386,6 +386,19 @@ export type PomodoroSession = {
   created_at: string;
 };
 
+/** /focus のポモ記録に出す1行(集中セッションのみ)。 */
+export type PomodoroLogEntry = {
+  id: string;
+  started_at: string;
+  ended_at: string | null;
+  completed: boolean;
+  /** タスク名、または固定の対象(基本情報技術者など)。どちらもなければ「対象なし」。 */
+  label: string;
+  company: string | null;
+  /** /focus の日付(7:00 JST区切り) */
+  day: string;
+};
+
 export type HealthLog = {
   id: string;
   user_id: string;

@@ -226,6 +226,12 @@ export function getFocusDayStartIso(): string {
   return `${getFocusDayString()}T07:00:00+09:00`;
 }
 
+/** 任意の時刻が属する /focus の日付(7:00 JST区切り, YYYY-MM-DD)。 */
+export function getFocusDayOf(iso: string): string {
+  const shifted = new Date(Date.parse(iso) - 7 * 60 * 60 * 1000);
+  return shifted.toLocaleDateString("en-CA", { timeZone: "Asia/Tokyo" });
+}
+
 export function addDaysToDateString(dateStr: string, days: number): string {
   const [y, m, d] = dateStr.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d + days));

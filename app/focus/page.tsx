@@ -1,8 +1,9 @@
-import { getTodayPomodoroCount } from "@/lib/actions/pomodoro";
+import { getPomodoroLog, getTodayPomodoroCount } from "@/lib/actions/pomodoro";
 import { getFocusTasks, getOpenTasksForFocus } from "@/lib/actions/tasks";
 import { FocusBoard } from "@/components/focus/FocusBoard";
+import { PomodoroLog } from "@/components/focus/PomodoroLog";
 import { Card } from "@/components/ui/Card";
-import type { TaskWithCompany } from "@/types";
+import type { PomodoroLogEntry, TaskWithCompany } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,15 @@ export default async function FocusPage() {
   let tasks: TaskWithCompany[] = [];
   let openTasks: TaskWithCompany[] = [];
   let completedToday = 0;
+  let pomoLog: PomodoroLogEntry[] = [];
   let error: string | null = null;
 
   try {
-    [tasks, openTasks, completedToday] = await Promise.all([
+    [tasks, openTasks, completedToday, pomoLog] = await Promise.all([
       getFocusTasks(),
       getOpenTasksForFocus(),
       getTodayPomodoroCount(),
+      getPomodoroLog(7),
     ]);
   } catch (e) {
     error = e instanceof Error ? e.message : "取得に失敗しました";
@@ -35,11 +38,16 @@ export default async function FocusPage() {
   const plannedPomos = tasks.reduce((sum, t) => sum + (t.est_pomos ?? 1), 0);
 
   return (
-    <FocusBoard
-      tasks={tasks}
-      openTasks={openTasks}
-      completedToday={completedToday}
-      plannedPomos={plannedPomos}
-    />
+    <>
+      <FocusBoard
+        tasks={tasks}
+        openTasks={openTasks}
+        completedToday={completedToday}
+        plannedPomos={plannedPomos}
+      />
+      <div className="max-w-2xl mx-auto">
+        <PomodoroLog entries={pomoLog} />
+      </div>
+    </>
   );
 }
