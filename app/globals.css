@@ -12,6 +12,12 @@
   --accent-foreground: #ffffff;
   --ring: rgba(35, 131, 226, 0.4);
   --sidebar: #fbfbfa;
+  /* /focus 時間計測のカテゴリ色(就活/Webテスト対策/基本情報技術者/国試/勉強その他) */
+  --focus-cat-1: #2a78d6;
+  --focus-cat-2: #eb6834;
+  --focus-cat-3: #1baf7a;
+  --focus-cat-4: #eda100;
+  --focus-cat-5: #e87ba4;
   color-scheme: light;
 }
 
@@ -27,6 +33,11 @@
   --accent-foreground: #1a1a1a;
   --ring: rgba(82, 156, 202, 0.45);
   --sidebar: #202020;
+  --focus-cat-1: #3987e5;
+  --focus-cat-2: #d95926;
+  --focus-cat-3: #199e70;
+  --focus-cat-4: #c98500;
+  --focus-cat-5: #d55181;
   color-scheme: dark;
 }
 

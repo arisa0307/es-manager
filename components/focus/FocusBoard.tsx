@@ -6,142 +6,154 @@ import {
   useCallback,
   useEffect,
   useOptimistic,
-  useRef,
   useState,
   useTransition,
 } from "react";
-import { finishPomodoro, startPomodoro } from "@/lib/actions/pomodoro";
+import {
+  addManualFocusSession,
+  startFocusSession,
+  stopFocusSession,
+} from "@/lib/actions/pomodoro";
 import {
   carryOverTask,
   completeTaskWithNote,
   toggleTaskDone,
 } from "@/lib/actions/tasks";
+import { FocusStats } from "@/components/focus/FocusStats";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import {
+  formatDuration,
+  formatElapsed,
+  formatJstTime,
+  formatPomoEquivalent,
+  fromJstInputValue,
+  toJstInputValue,
+  type FocusGroupId,
+} from "@/lib/focus-categories";
 import { formatDate, isOverdue } from "@/lib/utils";
 import {
   FOCUS_FIXED_SUBJECTS,
   type FocusFixedSubject,
-  type PomodoroKind,
+  type FocusSessionEntry,
+  type FocusTargetInput,
   type TaskWithCompany,
 } from "@/types";
 
-const FOCUS_MIN = 25;
-const SHORT_BREAK_MIN = 5;
-const LONG_BREAK_MIN = 15;
-const STORAGE_KEY = "atFocusTimer";
+/** 計測が長すぎるとき「まだ続けていますか？」を出す間隔 */
+const LONG_SESSION_SEC = 3 * 60 * 60;
+const LONG_ACK_KEY = "atFocusLongAck";
 
-type ActiveTimer = {
-  sessionId: string;
-  taskId: string | null;
-  /** 固定の対象(基本情報技術者など)を選んでいたときのラベル */
-  subject?: FocusFixedSubject | null;
-  kind: PomodoroKind;
-  /** 開始時刻(epoch ms)。残り時間はここから計算するので再読込しても継続する。 */
-  startMs: number;
-  durationSec: number;
-};
-
-function loadActive(): ActiveTimer | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ActiveTimer) : null;
-  } catch {
-    return null;
-  }
-}
-function saveActive(t: ActiveTimer) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(t));
-  } catch {
-    // localStorage が使えない環境でも動作は続ける
-  }
-}
-function clearActiveStorage() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // 無視
-  }
-}
-
-/** ポモの対象。今日の並び以外のタスクや、固定の対象も選べる。 */
+/** 計測の対象。今日の並び以外のタスクや、固定の対象も選べる。 */
 type FocusTarget =
   | { type: "task"; task: TaskWithCompany }
   | { type: "subject"; subject: FocusFixedSubject };
 
-/** <select> の value 用キー */
-function targetKey(t: FocusTarget | null): string {
-  if (!t) return "";
+function targetKey(t: FocusTarget): string {
   return t.type === "task" ? `task:${t.task.id}` : `subject:${t.subject}`;
+}
+
+function toInput(t: FocusTarget): FocusTargetInput {
+  return t.type === "task" ? { taskId: t.task.id } : { subject: t.subject };
 }
 
 function taskLabel(t: TaskWithCompany): string {
   return t.companies ? `${t.companies.name}・${t.title}` : t.title;
 }
 
-function fmt(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : "失敗しました";
 }
 
-function beep() {
+/** 止め忘れ確認を「続けている」で閉じたときの経過秒数(セッションごと)。 */
+function loadLongAck(sessionId: string): number {
   try {
-    const Ctor =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-    if (!Ctor) return;
-    const ctx = new Ctor();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.42);
-    setTimeout(() => ctx.close().catch(() => {}), 700);
+    const raw = localStorage.getItem(LONG_ACK_KEY);
+    const v = raw ? (JSON.parse(raw) as { id: string; sec: number }) : null;
+    return v && v.id === sessionId ? v.sec : 0;
   } catch {
-    // 音が出せなくても致命的ではない
+    return 0;
+  }
+}
+function saveLongAck(sessionId: string, sec: number) {
+  try {
+    localStorage.setItem(LONG_ACK_KEY, JSON.stringify({ id: sessionId, sec }));
+  } catch {
+    // 保存できなくても画面上は閉じる
   }
 }
 
-function notify(kind: PomodoroKind) {
-  const body =
-    kind === "focus"
-      ? "ポモドーロ完了！少し休憩しましょう"
-      : "休憩終了！次のポモを始めましょう";
-  try {
-    if (
-      typeof Notification !== "undefined" &&
-      Notification.permission === "granted"
-    ) {
-      new Notification("a.t focus", { body });
-    }
-  } catch {
-    // 通知不可でも続行
-  }
-  beep();
+/** 対象を選ぶ <select>。計測と手入力で共用。 */
+function TargetSelect({
+  id,
+  value,
+  onChange,
+  disabled,
+  planned,
+  others,
+}: {
+  id: string;
+  value: string;
+  onChange: (key: string) => void;
+  disabled?: boolean;
+  planned: TaskWithCompany[];
+  others: TaskWithCompany[];
+}) {
+  return (
+    <Select
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+    >
+      {planned.length > 0 && (
+        <optgroup label="今日の並び">
+          {planned.map((t) => (
+            <option key={t.id} value={`task:${t.id}`}>
+              {taskLabel(t)}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      <optgroup label="いつでも">
+        {FOCUS_FIXED_SUBJECTS.map((s) => (
+          <option key={s} value={`subject:${s}`}>
+            {s}
+          </option>
+        ))}
+      </optgroup>
+      {others.length > 0 && (
+        <optgroup label="その他の未完了タスク">
+          {others.map((t) => (
+            <option key={t.id} value={`task:${t.id}`}>
+              {taskLabel(t)}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </Select>
+  );
 }
 
 export function FocusBoard({
   tasks,
   openTasks,
-  completedToday,
-  plannedPomos,
+  sessions,
+  active,
+  taskTotals,
+  goals,
+  today,
 }: {
   tasks: TaskWithCompany[];
   openTasks: TaskWithCompany[];
-  completedToday: number;
-  plannedPomos: number;
+  sessions: FocusSessionEntry[];
+  active: FocusSessionEntry | null;
+  taskTotals: Record<string, number>;
+  goals: Record<FocusGroupId, number>;
+  today: string;
 }) {
   const router = useRouter();
   // 楽観的更新: 完了/持ち越し/戻すをクリック直後に反映し、サーバ往復を待たせない。
@@ -164,20 +176,22 @@ export function FocusBoard({
   // 完了済みは当日のうちは残す(誤操作に気づけるよう取り消し線+戻すボタンで表示)。
   const doneTasks = optimisticTasks.filter((t) => t.is_done);
 
+  const plannedIds = new Set(optimisticTasks.map((t) => t.id));
+  const otherTasks = [
+    ...smallTasks,
+    ...openTasks.filter((t) => !plannedIds.has(t.id)),
+  ];
+
   // 選択中の対象のキー("task:<id>" / "subject:<ラベル>")。null なら既定(並びの先頭)。
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [active, setActive] = useState<ActiveTimer | null>(null);
-  const [remaining, setRemaining] = useState(0);
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState("");
-
-  const focusCountRef = useRef(completedToday);
-  const completingRef = useRef(false);
-  const completeRef = useRef<() => void>(() => {});
-
-  // 今日の並び以外の未完了タスク(ピッカーの「その他」に出す)。
-  const plannedIds = new Set(optimisticTasks.map((t) => t.id));
-  const otherTasks = openTasks.filter((t) => !plannedIds.has(t.id));
+  const [error, setError] = useState<string | null>(null);
+  // 現在時刻。SSR とずれないよう、マウント後に入れてから毎秒更新する。
+  const [now, setNow] = useState<number | null>(null);
+  const [longAck, setLongAck] = useState(0);
+  const [stopAtOpen, setStopAtOpen] = useState(false);
+  const [stopAt, setStopAt] = useState("");
 
   const resolveTarget = (key: string | null): FocusTarget | null => {
     if (key?.startsWith("subject:")) {
@@ -200,288 +214,270 @@ export function FocusBoard({
     (normalTasks[0]
       ? { type: "task", task: normalTasks[0] }
       : { type: "subject", subject: FOCUS_FIXED_SUBJECTS[0] });
-  const currentTask = target.type === "task" ? target.task : null;
-  const currentSubject = target.type === "subject" ? target.subject : null;
   const currentKey = targetKey(target);
-  const currentPlanIndex = currentTask
-    ? normalTasks.findIndex((t) => t.id === currentTask.id)
-    : -1;
+  const currentPlanIndex =
+    target.type === "task"
+      ? normalTasks.findIndex((t) => t.id === target.task.id)
+      : -1;
 
-  // 再読込・タブ復帰時に、進行中タイマーを開始時刻から復元する。
+  // 計測中なら、完了/持ち越しの対象は計測中のタスクにする。
+  const actionTask: TaskWithCompany | null = active
+    ? active.task_id
+      ? (activeTasks.find((t) => t.id === active.task_id) ??
+        otherTasks.find((t) => t.id === active.task_id) ??
+        null)
+      : null
+    : target.type === "task"
+      ? target.task
+      : null;
+  const actionTaskPlanned =
+    !!actionTask && normalTasks.some((t) => t.id === actionTask.id);
+
+  const elapsedSec =
+    active && now !== null
+      ? Math.max(0, (now - Date.parse(active.started_at)) / 1000)
+      : 0;
+
   useEffect(() => {
-    const t = loadActive();
-    if (!t) return;
-    const elapsed = (Date.now() - t.startMs) / 1000;
-    if (elapsed >= t.durationSec) {
-      // 離席中に完走していた → 完了として記録し、休憩は開始しない。
-      finishPomodoro(t.sessionId, true).finally(() => {
-        clearActiveStorage();
-        router.refresh();
-      });
-    } else {
-      setActive(t);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const startTimer = useCallback(
-    async (kind: PomodoroKind) => {
-      if (pending) return;
-      setPending(true);
-      try {
-        if (
-          kind === "focus" &&
-          typeof Notification !== "undefined" &&
-          Notification.permission === "default"
-        ) {
-          try {
-            await Notification.requestPermission();
-          } catch {
-            // 拒否されても続行
-          }
-        }
-        const taskId = currentTask?.id ?? null;
-        const subject = currentSubject;
-        const session = await startPomodoro(taskId, kind, subject);
-        const durationSec =
-          (kind === "focus"
-            ? FOCUS_MIN
-            : kind === "long_break"
-              ? LONG_BREAK_MIN
-              : SHORT_BREAK_MIN) * 60;
-        const timer: ActiveTimer = {
-          sessionId: session.id,
-          taskId,
-          subject,
-          kind,
-          startMs: Date.parse(session.started_at),
-          durationSec,
-        };
-        completingRef.current = false;
-        saveActive(timer);
-        setActive(timer);
-      } finally {
-        setPending(false);
-      }
-    },
-    [currentTask, currentSubject, pending]
-  );
-
-  const handleComplete = useCallback(async () => {
-    if (!active || completingRef.current) return;
-    completingRef.current = true;
-    const finished = active;
-    clearActiveStorage();
-    setActive(null);
-    await finishPomodoro(finished.sessionId, true);
-    notify(finished.kind);
-    if (finished.kind === "focus") {
-      focusCountRef.current += 1;
-      const long = focusCountRef.current % 4 === 0;
-      await startTimer(long ? "long_break" : "short_break");
-    }
-    router.refresh();
-  }, [active, router, startTimer]);
-
-  completeRef.current = handleComplete;
-
-  // 1秒ごとに残り時間を再計算。0 になったら完了処理へ。
-  useEffect(() => {
-    if (!active) {
-      setRemaining(0);
-      return;
-    }
-    const tick = () => {
-      const rem = Math.max(
-        0,
-        Math.ceil(active.durationSec - (Date.now() - active.startMs) / 1000)
-      );
-      setRemaining(rem);
-      if (rem <= 0) completeRef.current();
-    };
-    tick();
-    const id = setInterval(tick, 250);
+    setNow(Date.now());
+    if (!active) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [active]);
 
-  const stop = useCallback(async () => {
-    if (!active) return;
-    completingRef.current = true;
-    const stopped = active;
-    clearActiveStorage();
-    setActive(null);
-    setRemaining(0);
-    await finishPomodoro(stopped.sessionId, false);
-    completingRef.current = false;
-    router.refresh();
-  }, [active, router]);
+  useEffect(() => {
+    setLongAck(active ? loadLongAck(active.id) : 0);
+    setStopAtOpen(false);
+  }, [active]);
 
-  const completeTask = useCallback(
-    (id: string, withNote: boolean) => {
-      const n = withNote ? note : null;
+  // 別の端末で開始/終了したときに追従できるよう、タブに戻ったら取り直す。
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [router]);
+
+  const showLongWarning =
+    !!active && elapsedSec - longAck >= LONG_SESSION_SEC;
+
+  const run = useCallback(
+    async (fn: () => Promise<void>) => {
+      if (pending) return;
       setPending(true);
-      startTaskTransition(async () => {
-        applyTaskOptimistic({ type: "complete", id, done: true });
-        setNote("");
-        try {
-          await completeTaskWithNote(id, n);
-          router.refresh();
-        } finally {
-          setPending(false);
-        }
-      });
+      setError(null);
+      try {
+        await fn();
+      } catch (e) {
+        setError(errorMessage(e));
+      } finally {
+        setPending(false);
+        router.refresh();
+      }
     },
-    [note, router, applyTaskOptimistic]
+    [pending, router]
   );
 
-  const carryOver = useCallback(
-    (id: string, withNote: boolean) => {
-      const n = withNote ? note : null;
-      setPending(true);
-      startTaskTransition(async () => {
-        applyTaskOptimistic({ type: "carry", id });
-        setNote("");
-        try {
-          await carryOverTask(id, n);
-          router.refresh();
-        } finally {
-          setPending(false);
-        }
-      });
-    },
-    [note, router, applyTaskOptimistic]
-  );
+  const start = () => run(() => startFocusSession(toInput(target)));
+  const stop = (endedAt?: string) =>
+    active ? run(() => stopFocusSession(active.id, endedAt)) : undefined;
 
-  const undoComplete = useCallback(
-    (id: string) => {
-      setPending(true);
-      startTaskTransition(async () => {
-        applyTaskOptimistic({ type: "undo", id, done: false });
-        try {
-          await toggleTaskDone(id, false);
-          router.refresh();
-        } finally {
-          setPending(false);
-        }
-      });
-    },
-    [router, applyTaskOptimistic]
-  );
+  /** 計測中のタスクを完了/持ち越しするときは、先に計測を終える。 */
+  const stopIfMeasuring = async (taskId: string) => {
+    if (active && active.task_id === taskId) {
+      await stopFocusSession(active.id);
+    }
+  };
 
-  // 完了数はサーバの真値。ポモ完了ごとに router.refresh() で更新される。
-  const doneToday = completedToday;
-  const phaseLabel =
-    active?.kind === "focus"
-      ? "集中中"
-      : active?.kind === "long_break"
-        ? "長い休憩"
-        : active?.kind === "short_break"
-          ? "休憩中"
-          : "待機中";
-  const isBreak = active?.kind === "short_break" || active?.kind === "long_break";
+  const completeTask = (id: string, withNote: boolean) => {
+    const n = withNote ? note : null;
+    setPending(true);
+    setError(null);
+    startTaskTransition(async () => {
+      applyTaskOptimistic({ type: "complete", id, done: true });
+      setNote("");
+      try {
+        await stopIfMeasuring(id);
+        await completeTaskWithNote(id, n);
+      } catch (e) {
+        setError(errorMessage(e));
+      } finally {
+        setPending(false);
+        router.refresh();
+      }
+    });
+  };
+
+  const carryOver = (id: string, withNote: boolean) => {
+    const n = withNote ? note : null;
+    setPending(true);
+    setError(null);
+    startTaskTransition(async () => {
+      applyTaskOptimistic({ type: "carry", id });
+      setNote("");
+      try {
+        await stopIfMeasuring(id);
+        await carryOverTask(id, n);
+      } catch (e) {
+        setError(errorMessage(e));
+      } finally {
+        setPending(false);
+        router.refresh();
+      }
+    });
+  };
+
+  const undoComplete = (id: string) => {
+    setPending(true);
+    startTaskTransition(async () => {
+      applyTaskOptimistic({ type: "undo", id, done: false });
+      try {
+        await toggleTaskDone(id, false);
+      } finally {
+        setPending(false);
+        router.refresh();
+      }
+    });
+  };
+
+  const totalFor = (taskId: string) =>
+    (taskTotals[taskId] ?? 0) + (active?.task_id === taskId ? elapsedSec : 0);
+
+  const todaySec =
+    sessions
+      .filter((s) => s.day === today && s.ended_at)
+      .reduce(
+        (sum, s) =>
+          sum + (Date.parse(s.ended_at!) - Date.parse(s.started_at)) / 1000,
+        0
+      ) + (active && active.day === today ? elapsedSec : 0);
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="text-lg font-semibold">集中</h1>
         <div className="text-sm text-muted-foreground">
-          今日：完了{" "}
-          <span className="font-semibold text-foreground">{doneToday}</span> /
-          予定 {plannedPomos} ポモ
+          今日{" "}
+          <span className="font-semibold text-foreground tabular-nums">
+            {formatDuration(todaySec)}
+          </span>{" "}
+          <span className="text-xs opacity-70">
+            {formatPomoEquivalent(todaySec)}
+          </span>
         </div>
       </div>
 
-      {/* タイマー */}
+      {error && (
+        <Card className="mb-4 border-red-500/30 bg-red-500/5">
+          <p className="text-sm text-red-600">{error}</p>
+        </Card>
+      )}
+
+      {/* ストップウォッチ */}
       <Card className="mb-6 text-center">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
-          {phaseLabel}
+          {active ? `計測中・${formatJstTime(active.started_at)} から` : "待機中"}
         </p>
         <p
-          className={`my-3 font-mono text-6xl font-bold tabular-nums ${
-            isBreak ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
+          className={`my-3 font-mono text-5xl sm:text-6xl font-bold tabular-nums ${
+            active ? "text-foreground" : "text-muted-foreground/60"
           }`}
+          aria-live="off"
         >
-          {active ? fmt(remaining) : fmt(FOCUS_MIN * 60)}
+          {active ? (now === null ? "–:––" : formatElapsed(elapsedSec)) : "0:00"}
         </p>
-        <p className="mb-4 text-sm text-muted-foreground min-h-5">
-          {target.type === "subject" ? (
-            <span className="text-foreground font-medium">{target.subject}</span>
-          ) : currentTask ? (
-            <>
-              {currentTask.is_must && (
-                <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 font-semibold mr-1.5">
-                  MUST
-                </Badge>
-              )}
-              {currentTask.companies && (
-                <Link
-                  href={`/companies/${currentTask.companies.id}`}
-                  className="text-foreground font-medium hover:underline underline-offset-2"
-                >
-                  {currentTask.companies.name}
-                </Link>
-              )}{" "}
-              {currentTask.title}
-            </>
-          ) : null}
-        </p>
-        <div className="mx-auto mb-4 max-w-md text-left">
-          <label
-            htmlFor="focus-target"
-            className="mb-1 block text-xs text-muted-foreground"
-          >
-            ポモの対象
-          </label>
-          <Select
-            id="focus-target"
-            value={currentKey}
-            onChange={(e) => setSelectedKey(e.target.value)}
-            disabled={pending || !!active}
-          >
-            {normalTasks.length > 0 && (
-              <optgroup label="今日の並び">
-                {normalTasks.map((t) => (
-                  <option key={t.id} value={`task:${t.id}`}>
-                    {taskLabel(t)}
-                  </option>
-                ))}
-              </optgroup>
+
+        {active ? (
+          <p className="mb-4 text-sm min-h-5">
+            {active.company && (
+              <span className="text-muted-foreground">{active.company}・</span>
             )}
-            <optgroup label="いつでも">
-              {FOCUS_FIXED_SUBJECTS.map((s) => (
-                <option key={s} value={`subject:${s}`}>
-                  {s}
-                </option>
-              ))}
-            </optgroup>
-            {(smallTasks.length > 0 || otherTasks.length > 0) && (
-              <optgroup label="その他の未完了タスク">
-                {[...smallTasks, ...otherTasks].map((t) => (
-                  <option key={t.id} value={`task:${t.id}`}>
-                    {taskLabel(t)}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </Select>
-          {active && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              対象はタイマー停止中に変更できます
-            </p>
-          )}
-        </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          {!active && (
-            <Button
-              onClick={() => startTimer("focus")}
-              disabled={pending}
+            <span className="font-medium">{active.label}</span>
+          </p>
+        ) : (
+          <div className="mx-auto mb-4 max-w-md text-left">
+            <label
+              htmlFor="focus-target"
+              className="mb-1 block text-xs text-muted-foreground"
             >
-              ▶ 集中を開始
+              計測する対象
+            </label>
+            <TargetSelect
+              id="focus-target"
+              value={currentKey}
+              onChange={setSelectedKey}
+              disabled={pending}
+              planned={normalTasks}
+              others={otherTasks}
+            />
+          </div>
+        )}
+
+        {showLongWarning && active && (
+          <div className="mx-auto mb-4 max-w-md rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-left text-sm">
+            <p className="font-medium">
+              ⚠ 計測が{formatDuration(elapsedSec)}続いています。まだ続けていますか？
+            </p>
+            {!stopAtOpen ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    saveLongAck(active.id, elapsedSec);
+                    setLongAck(elapsedSec);
+                  }}
+                >
+                  続けている
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setStopAt(toJstInputValue(new Date().toISOString()));
+                    setStopAtOpen(true);
+                  }}
+                >
+                  終了時刻を指定して終える
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <label htmlFor="focus-stop-at" className="text-xs text-muted-foreground">
+                  実際に終えた時刻
+                </label>
+                <input
+                  id="focus-stop-at"
+                  type="datetime-local"
+                  value={stopAt}
+                  min={toJstInputValue(active.started_at)}
+                  onChange={(e) => setStopAt(e.target.value)}
+                  className="rounded-md border border-border bg-card px-2 py-1 text-sm"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => stopAt && stop(fromJstInputValue(stopAt))}
+                  disabled={pending || !stopAt}
+                >
+                  この時刻で終了
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setStopAtOpen(false)}>
+                  戻る
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap justify-center gap-2">
+          {!active ? (
+            <Button onClick={start} disabled={pending}>
+              ▶ 開始
             </Button>
-          )}
-          {active && (
-            <Button variant="danger" onClick={stop} disabled={pending}>
-              ■ 中断
+          ) : (
+            <Button variant="danger" onClick={() => stop()} disabled={pending}>
+              ■ 終了
             </Button>
           )}
           {!active && normalTasks.length > 1 && (
@@ -499,8 +495,13 @@ export function FocusBoard({
           )}
         </div>
 
-        {currentTask && (
+        {actionTask && (
           <div className="mt-4 border-t border-border pt-4">
+            <p className="mb-2 text-xs text-muted-foreground">
+              {taskLabel(actionTask)}
+              {totalFor(actionTask.id) > 0 &&
+                `（累計 ${formatDuration(totalFor(actionTask.id))}）`}
+            </p>
             <Input
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -510,15 +511,15 @@ export function FocusBoard({
             <div className="flex flex-wrap justify-center gap-2">
               <Button
                 variant="secondary"
-                onClick={() => completeTask(currentTask.id, true)}
+                onClick={() => completeTask(actionTask.id, true)}
                 disabled={pending}
               >
                 ✓ 完了
               </Button>
-              {currentPlanIndex >= 0 && (
+              {actionTaskPlanned && (
                 <Button
                   variant="ghost"
-                  onClick={() => carryOver(currentTask.id, true)}
+                  onClick={() => carryOver(actionTask.id, true)}
                   disabled={pending}
                 >
                   ↩ 持ち越し
@@ -528,6 +529,22 @@ export function FocusBoard({
           </div>
         )}
       </Card>
+
+      <FocusStats
+        sessions={sessions}
+        active={active}
+        elapsedSec={elapsedSec}
+        goals={goals}
+        today={today}
+        manualEntry={
+          <ManualEntryForm
+            planned={normalTasks}
+            others={otherTasks}
+            defaultKey={currentKey}
+            onError={setError}
+          />
+        }
+      />
 
       {/* 小タスクまとめ */}
       {smallTasks.length > 0 && (
@@ -585,85 +602,96 @@ export function FocusBoard({
         {normalTasks.length === 0 ? (
           <Card>
             <p className="text-sm text-muted-foreground">
-              ポモを割り当てたタスクはまだありません。
+              見積もりを入れたタスクはまだありません。
             </p>
           </Card>
         ) : (
           <div className="space-y-2">
-            {normalTasks.map((t, i) => (
-              <Card
-                key={t.id}
-                hover
-                className={`cursor-pointer ${t.id === currentTask?.id ? "ring-2 ring-accent" : ""} ${
-                  t.is_must && !t.is_done ? "border-2 border-red-500" : ""
-                }`}
-                onClick={() => {
-                  if (!active) setSelectedKey(`task:${t.id}`);
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 text-xs font-mono text-muted-foreground w-5 text-right">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">
-                      {t.companies && (
-                        <Link
-                          href={`/companies/${t.companies.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-muted-foreground hover:text-foreground hover:underline underline-offset-2"
-                        >
-                          {t.companies.name}
-                        </Link>
-                      )}
-                      {t.companies && "・"}
-                      {t.title}
-                    </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      {t.is_must && !t.is_done && (
-                        <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 font-semibold">
-                          MUST
+            {normalTasks.map((t, i) => {
+              const total = totalFor(t.id);
+              const selected = active
+                ? active.task_id === t.id
+                : target.type === "task" && target.task.id === t.id;
+              return (
+                <Card
+                  key={t.id}
+                  hover
+                  className={`cursor-pointer ${selected ? "ring-2 ring-accent" : ""} ${
+                    t.is_must && !t.is_done ? "border-2 border-red-500" : ""
+                  }`}
+                  onClick={() => {
+                    if (!active) setSelectedKey(`task:${t.id}`);
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 text-xs font-mono text-muted-foreground w-5 text-right">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">
+                        {t.companies && (
+                          <Link
+                            href={`/companies/${t.companies.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-muted-foreground hover:text-foreground hover:underline underline-offset-2"
+                          >
+                            {t.companies.name}
+                          </Link>
+                        )}
+                        {t.companies && "・"}
+                        {t.title}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {t.is_must && !t.is_done && (
+                          <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 font-semibold">
+                            MUST
+                          </Badge>
+                        )}
+                        <Badge className="bg-muted text-muted-foreground">
+                          見積 {t.est_pomos ?? 1} ポモ
                         </Badge>
-                      )}
-                      <Badge className="bg-muted text-muted-foreground">
-                        {t.est_pomos ?? 1} ポモ
-                      </Badge>
-                      {t.deadline && (
-                        <span
-                          className={`text-xs ${isOverdue(t.deadline, t.is_done) ? "text-red-600 font-medium" : "text-muted-foreground"}`}
-                        >
-                          {formatDate(t.deadline)}
-                        </span>
-                      )}
+                        {total > 0 && (
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            累計 {formatDuration(total)}
+                          </span>
+                        )}
+                        {t.deadline && (
+                          <span
+                            className={`text-xs ${isOverdue(t.deadline, t.is_done) ? "text-red-600 font-medium" : "text-muted-foreground"}`}
+                          >
+                            {formatDate(t.deadline)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 sm:flex-row">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          completeTask(t.id, false);
+                        }}
+                        disabled={pending}
+                      >
+                        完了
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          carryOver(t.id, false);
+                        }}
+                        disabled={pending}
+                      >
+                        持ち越し
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        completeTask(t.id, false);
-                      }}
-                      disabled={pending}
-                    >
-                      完了
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        carryOver(t.id, false);
-                      }}
-                      disabled={pending}
-                    >
-                      持ち越し
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
@@ -688,6 +716,11 @@ export function FocusBoard({
                   )}
                   {t.title}
                 </span>
+                {totalFor(t.id) > 0 && (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formatDuration(totalFor(t.id))}
+                  </span>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -701,6 +734,125 @@ export function FocusBoard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** 測り忘れた分を「〇〇を△分やった」で追加するフォーム。 */
+function ManualEntryForm({
+  planned,
+  others,
+  defaultKey,
+  onError,
+}: {
+  planned: TaskWithCompany[];
+  others: TaskWithCompany[];
+  defaultKey: string;
+  onError: (msg: string | null) => void;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [key, setKey] = useState(defaultKey);
+  const [minutes, setMinutes] = useState("30");
+  const [endAt, setEndAt] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const toTarget = (k: string): FocusTargetInput | null => {
+    if (k.startsWith("task:")) return { taskId: k.slice("task:".length) };
+    const s = k.slice("subject:".length);
+    return (FOCUS_FIXED_SUBJECTS as readonly string[]).includes(s)
+      ? { subject: s as FocusFixedSubject }
+      : null;
+  };
+
+  const submit = async () => {
+    const target = toTarget(key);
+    const min = Number(minutes);
+    if (!target || !endAt || !Number.isFinite(min) || min <= 0) {
+      onError("対象・分数・終了時刻を入れてください");
+      return;
+    }
+    const endIso = fromJstInputValue(endAt);
+    const startIso = new Date(Date.parse(endIso) - min * 60 * 1000).toISOString();
+    setSaving(true);
+    onError(null);
+    try {
+      await addManualFocusSession(target, startIso, endIso);
+      setOpen(false);
+      router.refresh();
+    } catch (e) {
+      onError(errorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          setKey(defaultKey);
+          setEndAt(toJstInputValue(new Date().toISOString()));
+          setOpen(true);
+        }}
+      >
+        ＋ 測り忘れた分を追加
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-3">
+      <div>
+        <label htmlFor="manual-target" className="mb-1 block text-xs text-muted-foreground">
+          対象
+        </label>
+        <TargetSelect
+          id="manual-target"
+          value={key}
+          onChange={setKey}
+          planned={planned}
+          others={others}
+        />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <div className="w-24">
+          <label htmlFor="manual-min" className="mb-1 block text-xs text-muted-foreground">
+            分
+          </label>
+          <Input
+            id="manual-min"
+            type="number"
+            min={1}
+            max={1440}
+            inputMode="numeric"
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <label htmlFor="manual-end" className="mb-1 block text-xs text-muted-foreground">
+            終えた時刻
+          </label>
+          <input
+            id="manual-end"
+            type="datetime-local"
+            value={endAt}
+            onChange={(e) => setEndAt(e.target.value)}
+            className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={submit} disabled={saving}>
+          追加
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          キャンセル
+        </Button>
+      </div>
     </div>
   );
 }

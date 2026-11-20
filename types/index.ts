@@ -386,18 +386,29 @@ export type PomodoroSession = {
   created_at: string;
 };
 
-/** /focus のポモ記録に出す1行(集中セッションのみ)。 */
-export type PomodoroLogEntry = {
+/**
+ * /focus の時間計測1件(pomodoro_sessions の kind='focus' の行)。
+ * ended_at が null なら計測中。
+ */
+export type FocusSessionEntry = {
   id: string;
+  task_id: string | null;
+  note: string | null;
   started_at: string;
   ended_at: string | null;
-  completed: boolean;
-  /** タスク名、または固定の対象(基本情報技術者など)。どちらもなければ「対象なし」。 */
+  /** タスク名、または固定の対象(基本情報技術者など) */
   label: string;
   company: string | null;
-  /** /focus の日付(7:00 JST区切り) */
+  /** lib/focus-categories.ts の FocusCategoryId */
+  category: string;
+  /** /focus の日付(7:00 JST区切り, 開始時刻基準) */
   day: string;
 };
+
+/** /focus で計測する対象。タスク、または固定の対象。 */
+export type FocusTargetInput =
+  | { taskId: string; subject?: undefined }
+  | { taskId?: undefined; subject: FocusFixedSubject };
 
 export type HealthLog = {
   id: string;
