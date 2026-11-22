@@ -66,10 +66,6 @@ export function CompanyInfoView({ company }: { company: Company }) {
           label: "ID",
           node: <CopyValue value={company.login_id} mono />,
         },
-        company.login_password && {
-          label: "Password",
-          node: <SecretValue value={company.login_password} />,
-        },
       ]),
     },
   ].filter((g) => g.rows.length > 0);
@@ -130,39 +126,6 @@ function CopyValue({ value, mono }: { value: string; mono?: boolean }) {
   return (
     <span className="flex items-center gap-2">
       <span className={mono ? "font-mono" : ""}>{value}</span>
-      <button
-        type="button"
-        onClick={copy}
-        className="shrink-0 text-xs text-accent hover:underline"
-      >
-        {copied ? "コピー済" : "コピー"}
-      </button>
-    </span>
-  );
-}
-
-function SecretValue({ value }: { value: string }) {
-  const [shown, setShown] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* クリップボード不可の環境では何もしない */
-    }
-  };
-  return (
-    <span className="flex items-center gap-2">
-      <span className="font-mono tracking-wider">{shown ? value : "••••••••"}</span>
-      <button
-        type="button"
-        onClick={() => setShown((s) => !s)}
-        className="shrink-0 text-xs text-accent hover:underline"
-      >
-        {shown ? "隠す" : "表示"}
-      </button>
       <button
         type="button"
         onClick={copy}

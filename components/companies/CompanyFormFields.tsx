@@ -42,7 +42,6 @@ export function parseCompanyFormData(form: FormData) {
     web_test_url: (form.get("web_test_url") as string) || null,
     web_test_notes: (form.get("web_test_notes") as string) || null,
     login_id: (form.get("login_id") as string) || null,
-    login_password: (form.get("login_password") as string) || null,
   };
 }
 
@@ -222,7 +221,7 @@ export function CompanyFormFields({
       <section className="space-y-3 rounded-lg border border-border p-3">
         <SectionTitle
           title="ログイン情報"
-          description="マイページ・応募サイトの URL / ID / パスワード"
+          description="マイページ・応募サイトの URL / ID（パスワードはこのアプリに保存しません）"
         />
         <Field label="マイページ / ログインURL">
           <div className="space-y-1.5">
@@ -242,15 +241,6 @@ export function CompanyFormFields({
               name="login_id"
               autoComplete="username"
               defaultValue={company?.login_id ?? ""}
-            />
-          </Field>
-          <Field label="Password">
-            <CopyableInput
-              name="login_password"
-              autoComplete="off"
-              defaultValue={company?.login_password ?? ""}
-              placeholder="表示・コピー可能"
-              masked
             />
           </Field>
         </div>

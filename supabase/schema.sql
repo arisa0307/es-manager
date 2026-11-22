@@ -17,7 +17,8 @@ begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql
+set search_path = '';
 
 -- ------------------------------------------------------------
 -- テーブル
@@ -293,6 +294,7 @@ create or replace function public.upsert_health_log(
 )
 returns public.health_logs
 language plpgsql
+set search_path = ''
 as $$
 declare
   result public.health_logs;
@@ -349,7 +351,7 @@ begin
   end loop;
 end $$;
 
--- es_rules（本番と同じ: UPDATE に with check が付いていない）
+-- es_rules
 alter table public.es_rules enable row level security;
 drop policy if exists "Users select own es_rules" on public.es_rules;
 drop policy if exists "Users insert own es_rules" on public.es_rules;
@@ -357,7 +359,7 @@ drop policy if exists "Users update own es_rules" on public.es_rules;
 drop policy if exists "Users delete own es_rules" on public.es_rules;
 create policy "Users select own es_rules" on public.es_rules for select using (auth.uid() = user_id);
 create policy "Users insert own es_rules" on public.es_rules for insert with check (auth.uid() = user_id);
-create policy "Users update own es_rules" on public.es_rules for update using (auth.uid() = user_id);
+create policy "Users update own es_rules" on public.es_rules for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users delete own es_rules" on public.es_rules for delete using (auth.uid() = user_id);
 
 -- health_log_requests はログなので UPDATE ポリシーなし（書き換え不可）

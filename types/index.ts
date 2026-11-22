@@ -146,7 +146,6 @@ export type Company = {
   web_test_url: string | null;
   web_test_notes: string | null;
   login_id: string | null;
-  login_password: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -324,7 +323,6 @@ export type CompanyInsert = {
   web_test_url?: string | null;
   web_test_notes?: string | null;
   login_id?: string | null;
-  login_password?: string | null;
 };
 
 export type CompanyUpdate = Partial<CompanyInsert>;
