@@ -12,6 +12,17 @@ import type {
   SortOrder,
 } from "@/types";
 
+// login_password 列は保存済みの値を残したまま、画面やクライアントには一切返さない。
+const COMPANY_COLUMNS =
+  "id, name, industry, url, desired_level, status, result, salary, next_action, deadline, memo, internship_name, internship_location, internship_memo, web_test_url, web_test_notes, login_id, progress_note, interview_prep, user_id, created_at, updated_at";
+
+/** 古い画面などから送られてきても、ログインパスワードは保存しない */
+function withoutLoginPassword<T extends object>(input: T): T {
+  const rest = { ...input } as T & { login_password?: unknown };
+  delete rest.login_password;
+  return rest;
+}
+
 export async function getCompanies(options?: {
   search?: string;
   status?: string;
@@ -21,7 +32,7 @@ export async function getCompanies(options?: {
   order?: SortOrder;
 }) {
   const supabase = await createClient();
-  let query = supabase.from("companies").select("*");
+  let query = supabase.from("companies").select(COMPANY_COLUMNS);
 
   if (options?.search) {
     query = query.or(
@@ -46,7 +57,7 @@ export async function getCompany(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
-    .select("*")
+    .select(COMPANY_COLUMNS)
     .eq("id", id)
     .single();
   if (error) throw new Error(error.message);
@@ -57,8 +68,8 @@ export async function createCompany(input: CompanyInsert) {
   const { supabase, user } = await getAuthedClient();
   const { data, error } = await supabase
     .from("companies")
-    .insert({ ...input, user_id: user.id })
-    .select()
+    .insert({ ...withoutLoginPassword(input), user_id: user.id })
+    .select(COMPANY_COLUMNS)
     .single();
   if (error) throw new Error(error.message);
   revalidatePath("/");
@@ -72,9 +83,9 @@ export async function updateCompany(id: string, input: CompanyUpdate) {
   const { supabase } = await getAuthedClient();
   const { data, error } = await supabase
     .from("companies")
-    .update(input)
+    .update(withoutLoginPassword(input))
     .eq("id", id)
-    .select()
+    .select(COMPANY_COLUMNS)
     .single();
   if (error) throw new Error(error.message);
   revalidatePath("/");

@@ -1,82 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# a.t — 就活管理アプリ
 
-## Getting Started
+就職活動で増えていく「企業・ES・選考日程・タスク」を一か所で管理するための Web アプリです。
+複数の学生が、それぞれ自分のアカウントでログインして使えます。
 
-First, run the development server:
+公開URL: https://es-manager-three.vercel.app/
+
+## 作った理由
+
+- 企業ごとの締切・説明会・面接日程がスプレッドシートやカレンダー、メモに散らばり、抜け漏れが起きていた。
+- ES の設問と回答を企業をまたいで使い回したかった。
+- 締切と予定を、普段使っているカレンダーアプリ（iPhone / Google カレンダー）に自動で表示したかった。
+
+## 主な機能
+
+| 機能 | 内容 |
+|---|---|
+| 企業管理 | 志望度（S〜D など）、選考ステータス、締切、次のアクション、メモ |
+| ES 管理 | 企業ごとの設問・回答・文字数、タグ、テンプレート化、提出ファイル保存 |
+| 予定管理 | 説明会・インターン・面接などの日程（確定／仮／未定、候補日） |
+| タスク | 優先度・締切つきの ToDo |
+| カレンダー購読 | 個人ごとの購読 URL（`.ics`）で外部カレンダーに締切と予定を表示 |
+| AI の次の一手 | Gemini API で、登録データから次にやるべきことを提案 |
+| 集中タイマー | `/focus` でポモドーロ／ストップウォッチと時間の集計 |
+| ゴミ箱 | 削除した予定・タスクは論理削除し、あとから復元できる |
+
+## 使っている技術
+
+- **フロントエンド / サーバー**: Next.js 15（App Router, Server Actions）, React 19, TypeScript
+- **スタイル**: Tailwind CSS v4
+- **データベース / 認証 / ストレージ**: Supabase（PostgreSQL, Supabase Auth, Storage）
+- **AI**: Google Gemini API（`@google/genai`）
+- **ホスティング**: Vercel（Supabase と同じリージョンに置くため、関数を `syd1` に固定）
+
+## 設計で判断したこと
+
+### 中心: 複数の学生が 1 つのデータベースを共有する（マルチテナント）
+
+このアプリは、複数の学生が同じ Supabase のデータベースを使います。学生ごとにデータベースを分けるのではなく、**1 つのデータベースの中で、行ごとに持ち主を決めて分ける**形にしました。
+
+1. **すべての行に持ち主（`user_id`）を持たせる**
+   企業・ES・提出物・タスク・予定・テンプレートなど、全テーブルに `user_id` 列を置き、Supabase Auth のユーザーと結びつけました。退会したユーザーのデータは `on delete cascade` で一緒に消えます。
+
+2. **分け方はアプリではなくデータベース（RLS）で守る**
+   全テーブルで Row Level Security を有効にし、読み取り・追加・更新・削除のすべてに「`auth.uid() = user_id` の行だけ」というポリシーを付けました。
+   - 更新には `using` と `with check` の両方を付け、他人の行を書き換えることも、自分の行の持ち主を他人に付け替えることもできないようにしています。
+   - こうしておくと、アプリのコードにバグがあって条件を書き忘れても、他の学生のデータは返りません。ブラウザに渡す anon キーで直接 API を呼ばれても同じです。
+   - ES の提出ファイル（Storage）も非公開バケットにし、`<user_id>/…` のフォルダを本人だけが読み書きできるようにしました。
+
+3. **RLS を通らない入り口は最小限にし、サーバーだけに置く**
+   外部カレンダーの購読（`/api/calendar.ics`）など、ログインしていない相手からのアクセスだけは、RLS を通れない管理者キー（service_role）を使います。
+   - このキーはサーバー側の API ルートでしか使わず、`NEXT_PUBLIC_` を付けてブラウザに出すことはしません。
+   - 誰のデータかは、推測できないランダムなトークンで決め、取得するときは必ず `user_id` で絞り込みます。
+
+4. **他人に見せる必要のない情報は持たない**
+   企業のマイページのパスワードは、このアプリには保存しない方針にしました（入力欄も置いていません）。
+
+### そのほか
+
+- **削除はゴミ箱方式（論理削除）**：誤って消した予定を戻せるように `deleted_at` 列で管理し、同じ企業・日付・時刻の予定は部分ユニークインデックスで二重登録を防いでいます。
+- **カレンダーは「重要な予定」と「その他」でフィードを分ける**：インターンや面接を、外部カレンダーで別の色にできます。
+- **体感速度の改善**：楽観的 UI 更新と、Vercel の関数を Supabase と同じリージョン（`syd1`）に置くことで、待ち時間を減らしました。
+
+## 生成AIとの分担
+
+| 担当 | 内容 |
+|---|---|
+| 自分 | 解決したい課題の整理、機能の仕様、画面と操作の流れ、**データベースの設計**（テーブル構成、ユーザーごとのデータの分け方、RLS によるアクセス制御の方針）、優先順位、動作確認と受け入れ判断 |
+| 生成AI（Claude など） | 仕様とデータベース設計にもとづくコードの実装、SQL の記述、不具合の調査と修正案 |
+
+仕様とデータベースの設計は自分で決め、実装は生成AIに任せました。AI が書いたコードは、実際に動かして仕様どおりかを自分で確認したうえで取り込んでいます。
+
+## ローカルでの動かし方
 
 ```bash
+npm install
+cp .env.local.example .env.local   # 値は自分の Supabase / Gemini のものを入れる
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+データベースは、新しい Supabase プロジェクトの SQL Editor で `supabase/schema.sql` を実行して作成します（テーブル・RLS・ストレージが本番と同じ構成になります）。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## 外部API
-
-### 認証
-
-`/api/events` と `/api/health` は、カレンダー購読と同じ Bearer トークン方式で認証する。
-トークンは `calendar_subscriptions.token`（ユーザーごとに発行済み）を使う。
-
-### ヘルスケアデータの取り込み（`POST /api/health`）
-
-iPhone のショートカットなどから、その日の体重・摂取カロリー・アクティブカロリー・歩数を送る。
-同じ `logDate` があれば条件付きで upsert する:
-
-- 値が `null` / 未指定 / `0` の項目は「未計測」とみなし、既存の値を上書きしない（初回保存時も `0` は `null` として保存）
-- 摂取カロリーは、`0` や未送信では既存値を保持し、非0でより大きい値が来たときだけ更新する（1日の累計を想定）
-- 更新のたびに `updated_at` を記録する
-- 受信した生のリクエスト本文は `health_log_requests`（`user_id` ごと・`received_at` 降順）に記録され、ショートカットが実際に何を送ったか後から確認できる
-
-リクエストボディ（JSON）:
-
-| フィールド    | 型     | 必須 | 説明                       |
-| ------------- | ------ | ---- | -------------------------- |
-| `logDate`     | string | ○    | `YYYY-MM-DD`               |
-| `weightKg`    | number |      | 体重(kg)                   |
-| `intakeKcal`  | number |      | 摂取カロリー(kcal)         |
-| `activeKcal`  | number |      | アクティブカロリー(kcal)   |
-| `steps`       | number |      | 歩数                       |
-
-curl での送信例:
-
-```bash
-curl -X POST https://<your-app>.vercel.app/api/health \
-  -H "Authorization: Bearer <YOUR_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "logDate": "2026-09-27",
-    "weightKg": 58.4,
-    "intakeKcal": 1850,
-    "activeKcal": 520,
-    "steps": 8123
-  }'
-```
-
-iPhone ショートカットでは「URLの内容を取得」アクションで、
-メソッド `POST`、ヘッダ `Authorization: Bearer <YOUR_TOKEN>`、
-本文を JSON にして上記フィールドを渡す。
+> 注意: `.env.local` は `.gitignore` で除外しています。キーは絶対にコミットしないでください。

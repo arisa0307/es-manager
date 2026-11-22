@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { claimOrphanedUserData } from "@/lib/actions/claim-orphan-data";
 import { getCompanies } from "@/lib/actions/companies";
 import { getGeneralEvents } from "@/lib/actions/general-events";
 import { getScheduleForDates } from "@/lib/actions/schedule";
@@ -52,7 +51,6 @@ export default async function DashboardPage() {
   const tomorrow = addDaysToDateString(today, 1);
 
   try {
-    await claimOrphanedUserData();
     let scheduleItems: ScheduleItem[] = [];
     [taskStats, companies, tasks, generalEvents, scheduleItems, funnelStats, pendingResults] =
       await Promise.all([
