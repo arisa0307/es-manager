@@ -6,7 +6,14 @@ import type { SelectionStep } from "@/lib/company-selection";
 /**
  * 予定(日付あり)とタスク(日付未定)の選考結果を、企業ページで1つにまとめて表示する。
  */
-export function CompanySelectionResults({ steps }: { steps: SelectionStep[] }) {
+export function CompanySelectionResults({
+  steps,
+  onOpenItem,
+}: {
+  steps: SelectionStep[];
+  /** 押したときに、同じページの中でその1件を開く */
+  onOpenItem?: (href: string) => void;
+}) {
   return (
     <Card>
       <div className="mb-3">
@@ -26,6 +33,11 @@ export function CompanySelectionResults({ steps }: { steps: SelectionStep[] }) {
             <li key={step.id}>
               <a
                 href={step.href}
+                onClick={(e) => {
+                  if (!onOpenItem) return;
+                  e.preventDefault();
+                  onOpenItem(step.href);
+                }}
                 className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2 transition-colors hover:bg-muted/40"
               >
                 <Badge

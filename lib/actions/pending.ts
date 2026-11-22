@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { esHref, eventHref, taskHref } from "@/lib/item-links";
 import {
   COMPANY_EVENT_TYPE_LABELS,
   type CompanyEventType,
@@ -56,7 +57,7 @@ export async function getPendingResults(): Promise<PendingResult[]> {
       company: companyName(e.companies as Joined),
       companyId: e.company_id,
       date: e.submitted_on ?? null,
-      href: e.company_id ? `/companies/${e.company_id}#company-es` : "/es",
+      href: esHref(e),
     });
   }
   for (const ev of eventRes.data ?? []) {
@@ -67,9 +68,7 @@ export async function getPendingResults(): Promise<PendingResult[]> {
       company: companyName(ev.companies as Joined),
       companyId: ev.company_id,
       date: ev.event_date ?? null,
-      href: ev.company_id
-        ? `/companies/${ev.company_id}#company-events`
-        : "/calendar",
+      href: eventHref(ev),
     });
   }
   for (const t of taskRes.data ?? []) {
@@ -80,7 +79,7 @@ export async function getPendingResults(): Promise<PendingResult[]> {
       company: companyName(t.companies as Joined),
       companyId: t.company_id,
       date: t.deadline ?? null,
-      href: t.company_id ? `/companies/${t.company_id}#company-tasks` : "/tasks",
+      href: taskHref(t),
     });
   }
 

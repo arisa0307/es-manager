@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TaskForm } from "./TaskForm";
+import { itemDomId } from "@/lib/item-links";
+import { useItemHighlight } from "@/lib/use-item-highlight";
 import { formatDate, getPriorityColor, getSelectionResultColor, isOverdue } from "@/lib/utils";
 import {
   DESIRED_LEVEL_LABELS,
@@ -24,12 +26,30 @@ import {
 export function TaskList({
   tasks,
   companies,
+  initialItem = null,
 }: {
   tasks: TaskWithCompany[];
   companies: Pick<Company, "id" | "name">[];
+  /** URL の item=task-...（開いたときに目立たせるタスク） */
+  initialItem?: string | null;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<TaskWithCompany | null>(null);
+  // 目立たせたいタスクが完了済みなら、「完了済み」を最初から開いておく
+  const [doneOpen, setDoneOpen] = useState(() =>
+    tasks.some((t) => t.is_done && itemDomId.task(t.id) === initialItem)
+  );
+  useItemHighlight(initialItem);
+  const editForm = (task: TaskWithCompany) => (
+    <Card key={task.id} id={itemDomId.task(task.id)} className="scroll-mt-24">
+      <TaskForm
+        companies={companies}
+        task={task}
+        onSuccess={() => setEditing(null)}
+        onCancel={() => setEditing(null)}
+      />
+    </Card>
+  );
   const [isPending, startTransition] = useTransition();
 
   // 楽観的更新: クリック直後に画面へ反映し、サーバ往復(約1.5〜2秒)を待たせない。
@@ -100,22 +120,34 @@ export function TaskList({
 
   return (
     <div className="space-y-4">
-      {(showForm || editing) && (
+      {showForm && (
         <Card>
           <TaskForm
             companies={companies}
-            task={editing ?? undefined}
-            onSuccess={() => { setShowForm(false); setEditing(null); }}
-            onCancel={() => { setShowForm(false); setEditing(null); }}
+            onSuccess={() => setShowForm(false)}
+            onCancel={() => setShowForm(false)}
           />
         </Card>
       )}
-      {!showForm && !editing && <Button onClick={() => setShowForm(true)}>+ タスク追加</Button>}
+      {!showForm && (
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setShowForm(true);
+          }}
+        >
+          + タスク追加
+        </Button>
+      )}
       <div className={`space-y-2 ${isPending ? "opacity-60" : ""}`}>
-        {ordered.map(({ task, depth }) => (
+        {ordered.map(({ task, depth }) =>
+          editing?.id === task.id ? (
+            editForm(task)
+          ) : (
           <Card
             key={task.id}
-            className={`${task.is_done ? "opacity-60" : ""} ${depth > 0 ? "ml-6 border-l-2 border-l-accent/30" : ""}`}
+            id={itemDomId.task(task.id)}
+            className={`scroll-mt-24 transition-shadow ${task.is_done ? "opacity-60" : ""} ${depth > 0 ? "ml-6 border-l-2 border-l-accent/30" : ""}`}
           >
             <div className="flex items-start gap-3">
               <input
@@ -173,25 +205,43 @@ export function TaskList({
                 </div>
               </div>
               <div className="flex gap-1">
-                <Button variant="ghost" size="sm" onClick={() => setEditing(task)}>編集</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditing(task);
+                  }}
+                >
+                  編集
+                </Button>
                 <Button variant="danger" size="sm" onClick={() => { if (confirm("ゴミ箱へ移動しますか？")) removeTask(task.id); }}>ゴミ箱へ</Button>
               </div>
             </div>
           </Card>
-        ))}
+          )
+        )}
       </div>
 
       {doneTasks.length > 0 && (
-        <details open={ordered.length === 0} className="group">
+        <details
+          open={doneOpen || ordered.length === 0}
+          onToggle={(e) => setDoneOpen(e.currentTarget.open)}
+          className="group"
+        >
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <span className="transition-transform group-open:rotate-90">▸</span>
             完了済み（{doneTasks.length}）
           </summary>
           <div className={`mt-2 space-y-1 ${isPending ? "opacity-60" : ""}`}>
-            {doneTasks.map((task) => (
+            {doneTasks.map((task) =>
+              editing?.id === task.id ? (
+                editForm(task)
+              ) : (
               <div
                 key={task.id}
-                className="flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-muted/60"
+                id={itemDomId.task(task.id)}
+                className="scroll-mt-24 flex items-center gap-2 rounded-md px-2 py-1 text-sm transition-shadow hover:bg-muted/60"
               >
                 <input
                   type="checkbox"
@@ -217,6 +267,16 @@ export function TaskList({
                   </span>
                 )}
                 <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditing(task);
+                  }}
+                  className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  編集
+                </button>
+                <button
                   onClick={() => {
                     if (confirm("ゴミ箱へ移動しますか？")) removeTask(task.id);
                   }}
@@ -225,7 +285,8 @@ export function TaskList({
                   ゴミ箱へ
                 </button>
               </div>
-            ))}
+              )
+            )}
           </div>
         </details>
       )}

@@ -18,6 +18,7 @@ export default async function TasksPage({
     done?: string;
     sort?: "deadline" | "desired_level";
     order?: "asc" | "desc";
+    item?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -26,8 +27,13 @@ export default async function TasksPage({
   let error: string | null = null;
 
   // 既定は未完了のみ。すべて見たいときは done=all を指定する。
+  // item=... で1件を開くときは、完了済みでも見つかるように絞り込みを外す。
   const isDone =
-    params.done === "all" ? undefined : params.done === "true" ? true : false;
+    params.done === "all" || (params.item && !params.done)
+      ? undefined
+      : params.done === "true"
+        ? true
+        : false;
 
   try {
     [tasks, companies] = await Promise.all([
@@ -56,7 +62,7 @@ export default async function TasksPage({
           <p className="text-sm text-red-600">{error}</p>
         </Card>
       ) : (
-        <TaskList tasks={tasks} companies={companies} />
+        <TaskList tasks={tasks} companies={companies} initialItem={params.item ?? null} />
       )}
     </>
   );

@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function ESPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; company?: string }>;
+  searchParams: Promise<{ q?: string; company?: string; item?: string; groups?: string }>;
 }) {
   const params = await searchParams;
   let submissions: ESSubmissionWithDetails[] = [];
@@ -70,6 +70,8 @@ export default async function ESPage({
           submissions={submissions}
           companies={companies}
           templates={templates}
+          initialItem={params.item ?? null}
+          initialGroups={(params.groups ?? "").split(",").filter(Boolean)}
         />
       )}
     </>

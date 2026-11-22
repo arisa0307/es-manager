@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { taskHref } from "@/lib/item-links";
 import { getCompanies } from "@/lib/actions/companies";
 import { getGeneralEvents } from "@/lib/actions/general-events";
 import { getScheduleForDates } from "@/lib/actions/schedule";
@@ -254,16 +255,22 @@ export default async function DashboardPage() {
           ) : (
             <ul className="space-y-2">
               {tasks.map((t) => (
-                <li key={t.id} className="text-sm flex items-start justify-between gap-3">
-                  <span className="min-w-0">
-                    <span className="block">{t.title}</span>
-                    <span className="block text-xs text-muted-foreground truncate">
-                      {t.companies?.name ?? "企業未設定"}
+                <li key={t.id}>
+                  <Link
+                    href={taskHref(t)}
+                    className="group -mx-2 flex items-start justify-between gap-3 rounded px-2 py-1 text-sm hover:bg-muted/50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block">{t.title}</span>
+                      <span className="block text-xs text-muted-foreground truncate">
+                        {t.companies?.name ?? "企業未設定"}
+                      </span>
                     </span>
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {formatDate(t.deadline)}
-                  </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+                      {formatDate(t.deadline)}
+                      <span aria-hidden className="text-muted-foreground/60 group-hover:text-foreground">›</span>
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

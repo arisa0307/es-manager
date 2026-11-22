@@ -17,7 +17,14 @@ import {
 } from "@/lib/utils";
 import type { ScheduleItem } from "@/types";
 
-export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
+export function CompanyUpcomingSchedule({
+  items,
+  onOpenItem,
+}: {
+  items: ScheduleItem[];
+  /** 押したときに、同じページの中でその1件を開く */
+  onOpenItem?: (href: string) => void;
+}) {
   // 「今日」は日本時間で判定する(UTCだと朝は前日扱いになる)
   const today = getTodayString();
   const router = useRouter();
@@ -57,6 +64,11 @@ export function CompanyUpcomingSchedule({ items }: { items: ScheduleItem[] }) {
       >
         <a
           href={item.href}
+          onClick={(e) => {
+            if (!onOpenItem || !item.href.startsWith("?")) return;
+            e.preventDefault();
+            onOpenItem(item.href);
+          }}
           className="flex min-w-0 flex-1 items-start gap-3 px-3 py-2.5"
         >
           <div className="shrink-0 w-20 text-right">

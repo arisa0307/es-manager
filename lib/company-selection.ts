@@ -39,7 +39,7 @@ export function buildCompanySelectionSteps(
       date: sub.submitted_on ?? null,
       result: sub.result,
       source: "es",
-      href: "#company-es",
+      href: `?open=es&item=es-${sub.id}`,
     });
   }
 
@@ -52,7 +52,7 @@ export function buildCompanySelectionSteps(
       date: event.event_date ?? null,
       result: event.result,
       source: "event",
-      href: "#company-events",
+      href: `?item=event-${event.id}`,
     });
   }
 
@@ -65,7 +65,7 @@ export function buildCompanySelectionSteps(
       date: task.deadline ?? null,
       result: task.result,
       source: "task",
-      href: "#company-tasks",
+      href: `?open=tasks&item=task-${task.id}`,
     });
   }
 
