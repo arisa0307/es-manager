@@ -6,22 +6,28 @@ import { useTransition } from "react";
 import { signOut } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { useFeatures } from "@/components/providers/FeaturesProvider";
+import type { FeatureKey } from "@/lib/features";
 
-const navItems = [
+const allNavItems: { href: string; label: string; icon: string; feature?: FeatureKey }[] = [
   { href: "/", label: "ホーム", icon: "◻" },
   { href: "/companies", label: "企業", icon: "◇" },
   { href: "/es", label: "ES", icon: "✎" },
   { href: "/tasks", label: "タスク", icon: "☑" },
-  { href: "/focus", label: "集中", icon: "◐" },
+  { href: "/focus", label: "集中", icon: "◐", feature: "focus" },
   { href: "/calendar", label: "カレンダー", icon: "▦" },
   { href: "/templates", label: "テンプレ", icon: "⎘" },
   { href: "/trash", label: "ゴミ箱", icon: "🗑" },
+  { href: "/settings", label: "設定", icon: "⚙" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
   const [isPending, startTransition] = useTransition();
+  const features = useFeatures();
+  // オフにした個人向け機能はメニューに出さない
+  const navItems = allNavItems.filter((item) => !item.feature || features[item.feature]);
 
   return (
     <>

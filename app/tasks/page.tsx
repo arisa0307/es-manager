@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { TaskFilters } from "@/components/tasks/TaskFilters";
 import { TaskList } from "@/components/tasks/TaskList";
 import { Card } from "@/components/ui/Card";
+import { getFeatureFlags } from "@/lib/features-server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function TasksPage({
   }>;
 }) {
   const params = await searchParams;
+  const features = await getFeatureFlags();
   let tasks: Awaited<ReturnType<typeof getTasks>> = [];
   let companies: Awaited<ReturnType<typeof getCompanies>> = [];
   let error: string | null = null;
@@ -40,7 +42,8 @@ export default async function TasksPage({
       getTasks({
         search: params.q,
         priority: params.priority,
-        kind: params.kind,
+        // 種別の機能がオフなら、URL に残った種別の絞り込みは使わない
+        kind: features.gtd ? params.kind : undefined,
         isDone,
         sort: params.sort,
         order: params.order,

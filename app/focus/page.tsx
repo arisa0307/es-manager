@@ -2,12 +2,27 @@ import { getFocusData } from "@/lib/actions/pomodoro";
 import { getFocusTasks, getOpenTasksForFocus } from "@/lib/actions/tasks";
 import { FocusBoard } from "@/components/focus/FocusBoard";
 import { Card } from "@/components/ui/Card";
+import Link from "next/link";
+import { isFeatureEnabled } from "@/lib/features-server";
 import { classifySession, groupOf } from "@/lib/focus-categories";
 import { getFocusDayString } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function FocusPage() {
+  // 個人向け機能。オフの人には中身を出さない（記録したデータは残っている）
+  if (!(await isFeatureEnabled("focus"))) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-10">
+        <Card>
+          <p className="text-sm text-foreground">集中タイマーはオフになっています。</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            使うときは <Link href="/settings" className="underline">設定</Link> でオンにしてください。以前の記録は消えずに残っています。
+          </p>
+        </Card>
+      </div>
+    );
+  }
   let data: {
     tasks: Awaited<ReturnType<typeof getFocusTasks>>;
     openTasks: Awaited<ReturnType<typeof getOpenTasksForFocus>>;

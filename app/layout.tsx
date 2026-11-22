@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Noto_Sans_JP } from "next/font/google";
 import { AppShell } from "@/components/layout/AppShell";
+import { getFeatureFlags } from "@/lib/features-server";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import "./globals.css";
 
@@ -24,9 +25,11 @@ export const metadata: Metadata = {
   description: "企業・ES・タスクを一元管理する就活アプリ",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // 利用者ごとの機能設定（未ログインなら既定値）
+  const features = await getFeatureFlags();
   return (
     <html
       lang="ja"
@@ -35,7 +38,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-background text-foreground">
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <AppShell features={features}>{children}</AppShell>
         </ThemeProvider>
         <Analytics />
       </body>

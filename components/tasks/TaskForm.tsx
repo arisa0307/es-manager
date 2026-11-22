@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { useFeatures } from "@/components/providers/FeaturesProvider";
 import {
   SELECTION_RESULTS,
   TASK_CATEGORIES,
@@ -38,11 +39,13 @@ export function TaskForm({
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const features = useFeatures();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const estPomosRaw = (form.get("est_pomos") as string)?.trim();
+    // オフの機能の欄はフォームに出していない。その項目は送らず、保存済みの値をそのまま残す。
     const data = {
       title: form.get("title") as string,
       memo: (form.get("memo") as string) || null,
@@ -50,10 +53,16 @@ export function TaskForm({
       priority: form.get("priority") as TaskPriority,
       result: (form.get("result") as string) || null,
       stage: (form.get("stage") as string) || null,
-      kind: (form.get("kind") as TaskKind) || null,
-      category: (form.get("category") as TaskCategory) || null,
-      est_pomos: estPomosRaw === "" ? null : Number(estPomosRaw),
-      waiting_on: (form.get("waiting_on") as string)?.trim() || null,
+      ...(form.has("kind") && { kind: (form.get("kind") as TaskKind) || null }),
+      ...(form.has("category") && {
+        category: (form.get("category") as TaskCategory) || null,
+      }),
+      ...(form.has("est_pomos") && {
+        est_pomos: estPomosRaw === "" ? null : Number(estPomosRaw),
+      }),
+      ...(form.has("waiting_on") && {
+        waiting_on: (form.get("waiting_on") as string)?.trim() || null,
+      }),
       show_on_calendar: ((): boolean | null => {
         const v = form.get("show_on_calendar") as string;
         if (v === "always") return true;
@@ -108,46 +117,56 @@ export function TaskForm({
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">種別</label>
-          <Select name="kind" defaultValue={task?.kind ?? "next"}>
-            {TASK_KINDS.map((k) => (
-              <option key={k} value={k}>{TASK_KIND_LABELS[k]}</option>
-            ))}
-          </Select>
+      {(features.gtd || features.study_categories || features.focus) && (
+        <div className="grid grid-cols-3 gap-3">
+          {features.gtd && (
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">種別</label>
+              <Select name="kind" defaultValue={task?.kind ?? "next"}>
+                {TASK_KINDS.map((k) => (
+                  <option key={k} value={k}>{TASK_KIND_LABELS[k]}</option>
+                ))}
+              </Select>
+            </div>
+          )}
+          {features.study_categories && (
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">分類</label>
+              <Select name="category" defaultValue={task?.category ?? "shukatsu"}>
+                {TASK_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{TASK_CATEGORY_LABELS[c]}</option>
+                ))}
+              </Select>
+            </div>
+          )}
+          {features.focus && (
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">
+                見積ポモ
+              </label>
+              <Input
+                type="number"
+                name="est_pomos"
+                min={0}
+                defaultValue={task?.est_pomos ?? 1}
+              />
+            </div>
+          )}
         </div>
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">分類</label>
-          <Select name="category" defaultValue={task?.category ?? "shukatsu"}>
-            {TASK_CATEGORIES.map((c) => (
-              <option key={c} value={c}>{TASK_CATEGORY_LABELS[c]}</option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">
-            見積ポモ
-          </label>
-          <Input
-            type="number"
-            name="est_pomos"
-            min={0}
-            defaultValue={task?.est_pomos ?? 1}
-          />
-        </div>
-      </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">
-            待ちの相手（「待ち」のとき）
-          </label>
-          <Input
-            name="waiting_on"
-            placeholder="例: claude / 企業名"
-            defaultValue={task?.waiting_on ?? ""}
-          />
-        </div>
+        {features.gtd && (
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">
+              待ちの相手（「待ち」のとき）
+            </label>
+            <Input
+              name="waiting_on"
+              placeholder="例: claude / 企業名"
+              defaultValue={task?.waiting_on ?? ""}
+            />
+          </div>
+        )}
         <div>
           <label className="block text-xs text-muted-foreground mb-1">
             カレンダー表示
@@ -162,7 +181,7 @@ export function TaskForm({
                   : "auto"
             }
           >
-            <option value="auto">自動（見積ポモ1以上なら表示）</option>
+            <option value="auto">{features.focus ? "自動（見積ポモ1以上なら表示）" : "自動"}</option>
             <option value="always">常に表示</option>
             <option value="never">表示しない</option>
           </Select>

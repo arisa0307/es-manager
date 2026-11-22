@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveFeatureFlags } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,17 @@ export async function POST(request: Request) {
 
   if (subscriptionError) return jsonResponse({ error: subscriptionError.message }, 500);
   if (!subscription) return jsonResponse({ error: "invalid token" }, 401);
+
+  // 個人向け機能。オフの人のデータは受け取らない（すでに記録した分は消さない）
+  const { data: settings, error: settingsError } = await supabase
+    .from("user_settings")
+    .select("features")
+    .eq("user_id", subscription.user_id)
+    .maybeSingle();
+  if (settingsError) return jsonResponse({ error: settingsError.message }, 500);
+  if (!resolveFeatureFlags(settings?.features).health_log) {
+    return jsonResponse({ error: "health log is turned off in settings" }, 403);
+  }
 
   // ショートカットが実際に何を送ってきたか(特に intake_kcal を送れているか)を
   // 後から確認できるよう、受信した生のリクエスト本文を記録する。失敗しても本処理は続行。

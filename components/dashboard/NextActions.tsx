@@ -7,11 +7,13 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import type { RuleRecommendation } from "@/lib/recommendations";
+import { useFeatures } from "@/components/providers/FeaturesProvider";
 
 export function NextActions({ rules }: { rules: RuleRecommendation[] }) {
   const [aiActions, setAiActions] = useState<AiNextAction[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { ai_next_actions: aiEnabled } = useFeatures();
 
   const runAi = () => {
     setError(null);
@@ -28,18 +30,22 @@ export function NextActions({ rules }: { rules: RuleRecommendation[] }) {
         <div>
           <h2 className="text-sm font-medium text-foreground">今日の推奨アクション</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            締切・進捗から自動抽出。AIで優先順位を整理することもできます
+            {aiEnabled
+              ? "締切・進捗から自動抽出。AIで優先順位を整理することもできます"
+              : "締切・進捗から自動抽出しています"}
           </p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={runAi}
-          disabled={isPending}
-          className="shrink-0"
-        >
-          {isPending ? "整理中..." : aiActions ? "再生成" : "AIで整理"}
-        </Button>
+        {aiEnabled && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={runAi}
+            disabled={isPending}
+            className="shrink-0"
+          >
+            {isPending ? "整理中..." : aiActions ? "再生成" : "AIで整理"}
+          </Button>
+        )}
       </div>
 
       {error && (

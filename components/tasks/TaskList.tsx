@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { TaskForm } from "./TaskForm";
 import { itemDomId } from "@/lib/item-links";
 import { useItemHighlight } from "@/lib/use-item-highlight";
+import { useFeatures } from "@/components/providers/FeaturesProvider";
 import { formatDate, getPriorityColor, getSelectionResultColor, isOverdue } from "@/lib/utils";
 import {
   DESIRED_LEVEL_LABELS,
@@ -51,6 +52,7 @@ export function TaskList({
     </Card>
   );
   const [isPending, startTransition] = useTransition();
+  const features = useFeatures();
 
   // 楽観的更新: クリック直後に画面へ反映し、サーバ往復(約1.5〜2秒)を待たせない。
   // サーバ側の再検証が終わると props が更新され、自動的に実データへ同期される。
@@ -169,7 +171,7 @@ export function TaskList({
                   <Badge className={getPriorityColor(task.priority as TaskPriority)}>
                     {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
                   </Badge>
-                  {task.kind && task.kind !== "next" && (
+                  {features.gtd && task.kind && task.kind !== "next" && (
                     <Badge className="bg-muted text-muted-foreground">
                       {TASK_KIND_LABELS[task.kind as TaskKind]}
                       {task.kind === "waiting" && task.waiting_on
@@ -177,7 +179,7 @@ export function TaskList({
                         : ""}
                     </Badge>
                   )}
-                  {typeof task.est_pomos === "number" && (
+                  {features.focus && typeof task.est_pomos === "number" && (
                     <Badge className="bg-muted text-muted-foreground">
                       {task.est_pomos === 0 ? "小" : `${task.est_pomos}ポモ`}
                     </Badge>
