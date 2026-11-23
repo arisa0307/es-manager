@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { esHref } from "@/lib/item-links";
 import {
   deleteES,
   deleteESSubmission,
@@ -76,7 +77,8 @@ export function ESSubmissionCard({
         </Badge>
         {showCompany && submission.companies && (
           <Link
-            href={`/companies/${submission.companies.id}`}
+            href={esHref(submission)}
+            title="企業ページで、このES提出を開く"
             className="text-sm font-medium hover:underline"
           >
             {submission.companies.name}

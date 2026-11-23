@@ -27,6 +27,8 @@ import {
   getCompanyEventStatusText,
 } from "@/lib/company-event-utils";
 import { ESSubmissionForm } from "@/components/es/ESSubmissionForm";
+import { itemDomId, type CompanySection } from "@/lib/item-links";
+import { replaceQuery, useItemHighlight } from "@/lib/use-item-highlight";
 import { ESSubmissionCard } from "@/components/es/ESSubmissionCard";
 import { TaskForm } from "@/components/tasks/TaskForm";
 import {
@@ -57,11 +59,17 @@ export function CompanyDetail({
   esSubmissions,
   tasks,
   events,
+  initialOpen = [],
+  initialItem = null,
 }: {
   company: Company;
   esSubmissions: ESSubmissionWithDetails[];
   tasks: Task[];
   events: CompanyEvent[];
+  /** URL の open=...（最初から開いておく欄） */
+  initialOpen?: CompanySection[];
+  /** URL の item=...（開いたあとに目立たせる項目の id） */
+  initialItem?: string | null;
 }) {
   const router = useRouter();
   const [showES, setShowES] = useState(false);
@@ -70,10 +78,20 @@ export function CompanyDetail({
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [showPastEvents, setShowPastEvents] = useState(false);
   // 既定は畳んだ状態。畳んでいる間は件名だけを一覧表示して中身が分かるようにする。
-  const [tasksCollapsed, setTasksCollapsed] = useState(true);
-  const [esCollapsed, setEsCollapsed] = useState(true);
+  // URL で欄や項目が指定されていれば、その欄を開いた状態で始める。
+  const [tasksCollapsed, setTasksCollapsed] = useState(
+    !initialOpen.includes("tasks") && !initialItem?.startsWith("task-")
+  );
+  const [esCollapsed, setEsCollapsed] = useState(
+    !initialOpen.includes("es") && !initialItem?.startsWith("es-")
+  );
+  // 目立たせる項目。行を押すたびに n を増やして、同じ項目でもう一度スクロールできるようにする。
+  const [highlight, setHighlight] = useState<{ id: string | null; n: number }>({
+    id: initialItem,
+    n: 0,
+  });
+  useItemHighlight(highlight.id, [highlight.n]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
   const [isPending, startTransition] = useTransition();
@@ -94,6 +112,39 @@ export function CompanyDetail({
     return d !== null && d < todayString;
   });
   const currentEvents = events.filter((e) => !pastEvents.includes(e));
+  const [showPastEvents, setShowPastEvents] = useState(() =>
+    pastEvents.some((e) => itemDomId.event(e.id) === initialItem)
+  );
+
+  // 欄の開閉を URL に残す（戻るボタンで同じ状態に戻すため）
+  const syncOpenToUrl = (next: { tasks: boolean; es: boolean }) => {
+    const open = [next.tasks && "tasks", next.es && "es"].filter(Boolean).join(",");
+    replaceQuery({ open: open || null, item: null });
+  };
+  const setTasksOpen = (open: boolean) => {
+    setTasksCollapsed(!open);
+    syncOpenToUrl({ tasks: open, es: !esCollapsed });
+  };
+  const setEsOpen = (open: boolean) => {
+    setEsCollapsed(!open);
+    syncOpenToUrl({ tasks: !tasksCollapsed, es: open });
+  };
+  /** 畳んだ一覧の行を押したとき: 欄を開いて、その1件までスクロールする */
+  const openItem = (section: CompanySection, id: string) => {
+    if (section === "tasks") setTasksOpen(true);
+    else setEsOpen(true);
+    setHighlight((h) => ({ id, n: h.n + 1 }));
+    replaceQuery({ item: id });
+  };
+  /** 同じページ内のリンク（?open=...&item=...）を、ページを読み直さずに開く */
+  const openFromHref = (href: string) => {
+    const item = new URLSearchParams(href.replace(/^\?/, "")).get("item");
+    if (!item) return;
+    if (item.startsWith("task-")) return openItem("tasks", item);
+    if (item.startsWith("es-")) return openItem("es", item);
+    if (pastEvents.some((e) => itemDomId.event(e.id) === item)) setShowPastEvents(true);
+    setHighlight((h) => ({ id: item, n: h.n + 1 }));
+  };
 
   const handleSaveCompany = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -195,9 +246,9 @@ export function CompanyDetail({
         )}
       </Card>
 
-      <CompanyUpcomingSchedule items={upcomingItems} />
+      <CompanyUpcomingSchedule items={upcomingItems} onOpenItem={openFromHref} />
 
-      <CompanySelectionResults steps={selectionSteps} />
+      <CompanySelectionResults steps={selectionSteps} onOpenItem={openFromHref} />
 
       <Card id="company-events">
         <SectionHeader
@@ -292,12 +343,12 @@ export function CompanyDetail({
           title="タスク"
           count={tasks.length}
           collapsed={tasksCollapsed}
-          onToggle={() => setTasksCollapsed((v) => !v)}
+          onToggle={() => setTasksOpen(tasksCollapsed)}
           action={
             <Button
               size="sm"
               onClick={() => {
-                setTasksCollapsed(false);
+                if (tasksCollapsed) setTasksOpen(true);
                 setShowTask(!showTask);
               }}
             >
@@ -321,21 +372,25 @@ export function CompanyDetail({
           ) : (
             <ul className="space-y-1">
               {tasks.map((task) => (
-                <li
-                  key={task.id}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <span className="text-muted-foreground/60">・</span>
-                  <span
-                    className={`flex-1 min-w-0 truncate ${task.is_done ? "line-through" : "text-foreground"}`}
+                <li key={task.id}>
+                  <button
+                    type="button"
+                    onClick={() => openItem("tasks", itemDomId.task(task.id))}
+                    className="group flex w-full items-center gap-2 rounded-md -mx-1 px-1 py-0.5 text-left text-sm text-muted-foreground hover:bg-muted/60"
                   >
-                    {task.title}
-                  </span>
-                  {task.result && (
-                    <Badge className={`${getSelectionResultColor(task.result)} shrink-0`}>
-                      {task.result}
-                    </Badge>
-                  )}
+                    <span className="text-muted-foreground/60">・</span>
+                    <span
+                      className={`flex-1 min-w-0 truncate ${task.is_done ? "line-through" : "text-foreground"}`}
+                    >
+                      {task.title}
+                    </span>
+                    {task.result && (
+                      <Badge className={`${getSelectionResultColor(task.result)} shrink-0`}>
+                        {task.result}
+                      </Badge>
+                    )}
+                    <span aria-hidden className="shrink-0 text-muted-foreground/60 group-hover:text-foreground">›</span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -348,7 +403,8 @@ export function CompanyDetail({
               editingTaskId === task.id ? (
                 <div
                   key={task.id}
-                  className="rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+                  id={itemDomId.task(task.id)}
+                  className="scroll-mt-24 rounded-lg border border-border bg-muted/20 px-3 py-2.5"
                 >
                   <TaskForm
                     companies={[{ id: company.id, name: company.name }]}
@@ -361,7 +417,8 @@ export function CompanyDetail({
               ) : (
                 <div
                   key={task.id}
-                  className="rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+                  id={itemDomId.task(task.id)}
+                  className="scroll-mt-24 rounded-lg border border-border bg-muted/20 px-3 py-2.5 transition-shadow"
                 >
                   <div className="flex items-start gap-3">
                     <input
@@ -443,12 +500,12 @@ export function CompanyDetail({
           title="ES"
           count={esSubmissions.length}
           collapsed={esCollapsed}
-          onToggle={() => setEsCollapsed((v) => !v)}
+          onToggle={() => setEsOpen(esCollapsed)}
           action={
             <Button
               size="sm"
               onClick={() => {
-                setEsCollapsed(false);
+                if (esCollapsed) setEsOpen(true);
                 setShowES(!showES);
               }}
             >
@@ -462,23 +519,27 @@ export function CompanyDetail({
           ) : (
             <ul className="space-y-1">
               {esSubmissions.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <span className="text-muted-foreground/60">・</span>
-                  <span className="flex-1 min-w-0 truncate text-foreground">
-                    {s.title || "ES提出"}
-                    <span className="text-muted-foreground">
-                      （{s.phase}
-                      {s.kind === "アンケート" ? "・アンケート" : ""}）
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    onClick={() => openItem("es", itemDomId.es(s.id))}
+                    className="group flex w-full items-center gap-2 rounded-md -mx-1 px-1 py-0.5 text-left text-sm text-muted-foreground hover:bg-muted/60"
+                  >
+                    <span className="text-muted-foreground/60">・</span>
+                    <span className="flex-1 min-w-0 truncate text-foreground">
+                      {s.title || "ES提出"}
+                      <span className="text-muted-foreground">
+                        （{s.phase}
+                        {s.kind === "アンケート" ? "・アンケート" : ""}）
+                      </span>
                     </span>
-                  </span>
-                  {s.result && (
-                    <Badge className={`${getSelectionResultColor(s.result)} shrink-0`}>
-                      {s.result}
-                    </Badge>
-                  )}
+                    {s.result && (
+                      <Badge className={`${getSelectionResultColor(s.result)} shrink-0`}>
+                        {s.result}
+                      </Badge>
+                    )}
+                    <span aria-hidden className="shrink-0 text-muted-foreground/60 group-hover:text-foreground">›</span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -503,11 +564,16 @@ export function CompanyDetail({
             ) : (
               <div className="space-y-3">
                 {esSubmissions.map((s) => (
-                  <ESSubmissionCard
+                  <div
                     key={s.id}
-                    submission={s}
-                    companies={[{ id: company.id, name: company.name }]}
-                  />
+                    id={itemDomId.es(s.id)}
+                    className="scroll-mt-24 rounded-lg transition-shadow"
+                  >
+                    <ESSubmissionCard
+                      submission={s}
+                      companies={[{ id: company.id, name: company.name }]}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -654,7 +720,10 @@ function EventCard({
   const scheduleEntries = buildCompanyEventScheduleEntries(event);
 
   return (
-    <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+    <div
+      id={itemDomId.event(event.id)}
+      className="scroll-mt-24 rounded-lg border border-border bg-muted/20 px-3 py-2.5 transition-shadow"
+    >
       {editing ? (
         <CompanyEventForm
           companyId={companyId}

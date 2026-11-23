@@ -227,6 +227,15 @@ create table if not exists public.calendar_subscriptions (
   updated_at timestamptz not null default now()
 );
 
+-- 利用者ごとの機能設定（個人向け機能のオン／オフ）。キーがなければアプリ側の既定値（オフ）
+create table if not exists public.user_settings (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  features jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint user_settings_features_is_object check (jsonb_typeof(features) = 'object')
+);
+
 -- ------------------------------------------------------------
 -- インデックス
 -- ------------------------------------------------------------
@@ -277,7 +286,7 @@ do $$
 declare t text;
 begin
   foreach t in array array['companies', 'es', 'es_submissions', 'es_templates', 'tasks',
-                           'company_events', 'general_events', 'calendar_subscriptions']
+                           'company_events', 'general_events', 'calendar_subscriptions', 'user_settings']
   loop
     execute format('drop trigger if exists %I on public.%I', t || '_updated_at', t);
     execute format('create trigger %I before update on public.%I
@@ -370,6 +379,15 @@ drop policy if exists "Users delete own health_log_requests" on public.health_lo
 create policy "Users select own health_log_requests" on public.health_log_requests for select using (auth.uid() = user_id);
 create policy "Users insert own health_log_requests" on public.health_log_requests for insert with check (auth.uid() = user_id);
 create policy "Users delete own health_log_requests" on public.health_log_requests for delete using (auth.uid() = user_id);
+
+-- user_settings（行を消す必要はないので DELETE ポリシーなし）
+alter table public.user_settings enable row level security;
+drop policy if exists "Users select own user_settings" on public.user_settings;
+drop policy if exists "Users insert own user_settings" on public.user_settings;
+drop policy if exists "Users update own user_settings" on public.user_settings;
+create policy "Users select own user_settings" on public.user_settings for select using (auth.uid() = user_id);
+create policy "Users insert own user_settings" on public.user_settings for insert with check (auth.uid() = user_id);
+create policy "Users update own user_settings" on public.user_settings for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ------------------------------------------------------------
 -- ストレージ: ES の提出ファイル（非公開バケット・本人のフォルダだけ）

@@ -9,6 +9,7 @@ import { getCalendarCompanyScheduleEvents } from "@/lib/actions/company-events";
 import { getCalendarGeneralEvents } from "@/lib/actions/general-events";
 import { getCalendarTaskEvents } from "@/lib/actions/tasks";
 import { formatTimeRange } from "@/lib/utils";
+import { eventHref, taskHref } from "@/lib/item-links";
 import {
   GENERAL_EVENT_TYPE_LABELS,
   type CompanyEventType,
@@ -56,7 +57,7 @@ export async function getScheduleForDates(dates: string[]) {
           event.type as CompanyEventType,
           entry
         ),
-        href: `/companies/${event.company_id}`,
+        href: eventHref(event),
         time: formatTimeRange(entry.startTime, entry.endTime) || null,
       });
     }
@@ -84,7 +85,7 @@ export async function getScheduleForDates(dates: string[]) {
         : task.title,
       kind: "task",
       label: "タスク",
-      href: task.company_id ? `/companies/${task.company_id}` : "/tasks",
+      href: taskHref(task),
     });
   }
 

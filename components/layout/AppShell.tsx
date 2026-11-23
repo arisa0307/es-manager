@@ -3,8 +3,16 @@
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { EnvBanner } from "@/components/EnvBanner";
+import { FeaturesProvider } from "@/components/providers/FeaturesProvider";
+import type { FeatureFlags } from "@/lib/features";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  features,
+}: {
+  children: React.ReactNode;
+  features: FeatureFlags;
+}) {
   const pathname = usePathname();
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 
@@ -17,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <FeaturesProvider flags={features}>
       <EnvBanner />
       <Sidebar />
       <main className="md:pl-52 min-h-screen pb-20 md:pb-0">
@@ -25,6 +33,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
-    </>
+    </FeaturesProvider>
   );
 }

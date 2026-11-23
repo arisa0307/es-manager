@@ -3,6 +3,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getCompanies } from "@/lib/actions/companies";
 import { getTasks } from "@/lib/actions/tasks";
+import { isFeatureEnabled } from "@/lib/features-server";
 import { buildSituationSummary } from "@/lib/recommendations";
 import {
   generateNextActions,
@@ -20,6 +21,11 @@ export type AiNextActionsResult =
  */
 export async function getAiNextActions(): Promise<AiNextActionsResult> {
   noStore();
+
+  // 個人向け機能。オフの人からは呼べない（API の利用枠を守るため）
+  if (!(await isFeatureEnabled("ai_next_actions"))) {
+    return { ok: false, error: "この機能はオフになっています。設定でオンにできます。" };
+  }
 
   if (!isGeminiConfigured()) {
     // どの環境でキーが見えていないのかを切り分けられるようにする（値は出さない）

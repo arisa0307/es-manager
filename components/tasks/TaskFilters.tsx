@@ -5,6 +5,7 @@ import { useCallback, useTransition } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useDebouncedCallback } from "@/lib/use-debounced-callback";
+import { useFeatures } from "@/components/providers/FeaturesProvider";
 import {
   TASK_KINDS,
   TASK_KIND_LABELS,
@@ -16,6 +17,7 @@ export function TaskFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const features = useFeatures();
 
   const update = useCallback(
     (key: string, value: string) => {
@@ -39,10 +41,12 @@ export function TaskFilters() {
         <option value="">優先度</option>
         {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>)}
       </Select>
-      <Select value={searchParams.get("kind") ?? ""} onChange={(e) => update("kind", e.target.value)} className="sm:w-28">
-        <option value="">種別</option>
-        {TASK_KINDS.map((k) => <option key={k} value={k}>{TASK_KIND_LABELS[k]}</option>)}
-      </Select>
+      {features.gtd && (
+        <Select value={searchParams.get("kind") ?? ""} onChange={(e) => update("kind", e.target.value)} className="sm:w-28">
+          <option value="">種別</option>
+          {TASK_KINDS.map((k) => <option key={k} value={k}>{TASK_KIND_LABELS[k]}</option>)}
+        </Select>
+      )}
       <Select value={searchParams.get("done") ?? "false"} onChange={(e) => update("done", e.target.value)} className="sm:w-28">
         <option value="false">未完了</option>
         <option value="true">完了</option>

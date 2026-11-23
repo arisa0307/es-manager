@@ -7,12 +7,20 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ESSubmissionForm } from "./ESSubmissionForm";
 import { ESSubmissionCard } from "./ESSubmissionCard";
 import type { Company, ESSubmissionWithDetails } from "@/types";
+import { itemDomId } from "@/lib/item-links";
+import { replaceQuery, useItemHighlight } from "@/lib/use-item-highlight";
 
 export function ESList({
   submissions,
   companies,
   templates = [],
+  initialItem = null,
+  initialGroups = [],
 }: {
+  /** URL の item=es-...（開いたときに目立たせる ES 提出） */
+  initialItem?: string | null;
+  /** URL の groups=...（開いている企業のまとまり。戻るボタンで同じ状態に戻すため） */
+  initialGroups?: string[];
   submissions: ESSubmissionWithDetails[];
   companies: Pick<Company, "id" | "name">[];
   templates?: {
@@ -46,13 +54,21 @@ export function ESList({
       });
   }, [submissions]);
 
-  const [open, setOpen] = useState<Set<string>>(new Set());
+  // 開いているまとまり: URL の groups=... と、item=... の ES 提出を含むまとまり
+  const [open, setOpen] = useState<Set<string>>(() => {
+    const set = new Set(initialGroups);
+    const target = submissions.find((s) => itemDomId.es(s.id) === initialItem);
+    if (target) set.add(target.companies?.id ?? "none");
+    return set;
+  });
+  useItemHighlight(initialItem);
   const isOpen = (key: string) => groups.length === 1 || open.has(key);
   const toggle = (key: string) =>
     setOpen((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      replaceQuery({ groups: [...next].join(",") || null, item: null });
       return next;
     });
 
@@ -88,7 +104,8 @@ export function ESList({
             <button
               type="button"
               onClick={() => toggle(group.key)}
-              className="mb-2 flex w-full items-center gap-2 text-left"
+              aria-expanded={isOpen(group.key)}
+              className="mb-2 flex w-full items-center gap-2 rounded-md -mx-1 px-1 py-0.5 text-left hover:bg-muted/60"
             >
               <span
                 className={`text-xs text-muted-foreground transition-transform ${isOpen(group.key) ? "rotate-90" : ""}`}
@@ -103,12 +120,17 @@ export function ESList({
             {isOpen(group.key) && (
               <div className="space-y-3">
                 {group.items.map((s) => (
-                  <ESSubmissionCard
+                  <div
                     key={s.id}
-                    submission={s}
-                    companies={companies}
-                    templates={templates}
-                  />
+                    id={itemDomId.es(s.id)}
+                    className="scroll-mt-24 rounded-lg transition-shadow"
+                  >
+                    <ESSubmissionCard
+                      submission={s}
+                      companies={companies}
+                      templates={templates}
+                    />
+                  </div>
                 ))}
               </div>
             )}

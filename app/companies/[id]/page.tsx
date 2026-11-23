@@ -5,15 +5,19 @@ import { getTasks } from "@/lib/actions/tasks";
 import { getCompanyEvents } from "@/lib/actions/company-events";
 import { CompanyDetail } from "@/components/companies/CompanyDetail";
 import { Card } from "@/components/ui/Card";
+import { parseOpenSections } from "@/lib/item-links";
 
 export const dynamic = "force-dynamic";
 
 export default async function CompanyDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ open?: string; item?: string }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
   let company: Awaited<ReturnType<typeof getCompany>>;
   let esSubmissions: Awaited<ReturnType<typeof getESSubmissions>>;
   let tasks: Awaited<ReturnType<typeof getTasks>>;
@@ -41,6 +45,8 @@ export default async function CompanyDetailPage({
       esSubmissions={esSubmissions}
       tasks={tasks}
       events={events}
+      initialOpen={[...parseOpenSections(query.open)]}
+      initialItem={query.item ?? null}
     />
   );
 }

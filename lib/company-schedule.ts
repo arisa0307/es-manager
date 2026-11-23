@@ -43,7 +43,7 @@ export function buildCompanyUpcomingSchedule(
           event.type as CompanyEventType,
           entry
         ),
-        href: `#company-events`,
+        href: `?item=event-${event.id}`,
         time: formatTimeRange(entry.startTime, entry.endTime) || null,
         memo: event.memo,
         deleteId: event.id,
@@ -59,7 +59,7 @@ export function buildCompanyUpcomingSchedule(
       title: task.title,
       kind: "task",
       label: "タスク",
-      href: `#company-tasks`,
+      href: `?open=tasks&item=task-${task.id}`,
       memo: task.memo,
       deleteId: task.id,
     });
