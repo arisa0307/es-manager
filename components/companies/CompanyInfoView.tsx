@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { revealLoginPassword } from "@/lib/actions/login-secret";
 import { ExternalUrlLink, LinkifiedText } from "@/components/ui/LinkifiedText";
 import type { Company } from "@/types";
 
@@ -66,6 +67,10 @@ export function CompanyInfoView({ company }: { company: Company }) {
           label: "ID",
           node: <CopyValue value={company.login_id} mono />,
         },
+        company.has_login_password && {
+          label: "Password",
+          node: <SecretValue companyId={company.id} />,
+        },
       ]),
     },
   ].filter((g) => g.rows.length > 0);
@@ -109,6 +114,72 @@ function compact(
 ): { label: string; node: React.ReactNode }[] {
   return rows.filter(
     (r): r is { label: string; node: React.ReactNode } => Boolean(r)
+  );
+}
+
+/**
+ * 保存済みのパスワード。ページの HTML には含めず、「表示」か「コピー」を押したときだけ
+ * サーバーで本人の行かを確かめてから受け取る。隠すと手元の値も捨てる。
+ */
+function SecretValue({ companyId }: { companyId: string }) {
+  const [value, setValue] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const fetchValue = async (): Promise<string | null> => {
+    const res = await revealLoginPassword(companyId);
+    if (!res.ok) {
+      setError(res.error);
+      return null;
+    }
+    setError(null);
+    return res.password;
+  };
+
+  const toggle = () => {
+    if (value !== null) {
+      setValue(null);
+      return;
+    }
+    startTransition(async () => setValue(await fetchValue()));
+  };
+
+  const copy = () => {
+    startTransition(async () => {
+      const v = value ?? (await fetchValue());
+      if (v === null) return;
+      try {
+        await navigator.clipboard.writeText(v);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch {
+        setError("コピーできませんでした");
+      }
+    });
+  };
+
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <span className="font-mono tracking-wider">{value ?? "••••••••"}</span>
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={isPending}
+        className="shrink-0 text-xs text-accent hover:underline disabled:opacity-60"
+      >
+        {value !== null ? "隠す" : "表示"}
+      </button>
+      <button
+        type="button"
+        onClick={copy}
+        disabled={isPending}
+        className="shrink-0 text-xs text-accent hover:underline disabled:opacity-60"
+      >
+        {copied ? "コピー済" : "コピー"}
+      </button>
+      {error && <span className="text-xs text-red-600">{error}</span>}
+    </span>
   );
 }
 

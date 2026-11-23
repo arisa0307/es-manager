@@ -41,7 +41,10 @@ create table if not exists public.companies (
   web_test_url text,
   web_test_notes text,
   login_id text,
+  -- 旧: 平文のパスワード。暗号化して移し替えたあとは空にする。新しい値は書かない
   login_password text,
+  -- AES-256-GCM で暗号化したパスワード（鍵は Vercel の環境変数 LOGIN_PASSWORD_ENCRYPTION_KEY）
+  login_password_enc text,
   progress_note text,
   interview_prep text,
   user_id uuid references auth.users(id) on delete cascade,
