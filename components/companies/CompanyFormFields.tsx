@@ -4,6 +4,7 @@ import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { useCanStorePassword } from "@/components/providers/FeaturesProvider";
 import {
   COMPANY_EVENT_TYPES,
   COMPANY_EVENT_TYPE_LABELS,
@@ -42,6 +43,11 @@ export function parseCompanyFormData(form: FormData) {
     web_test_url: (form.get("web_test_url") as string) || null,
     web_test_notes: (form.get("web_test_notes") as string) || null,
     login_id: (form.get("login_id") as string) || null,
+    // パスワードは入力されたときだけ送る（空欄なら保存済みの値を残す）。サーバーで暗号化して保存する
+    ...(((form.get("login_password") as string) ?? "") !== "" && {
+      login_password: form.get("login_password") as string,
+    }),
+    ...(form.get("clear_login_password") === "on" && { clear_login_password: true }),
   };
 }
 
@@ -70,6 +76,7 @@ export function CompanyFormFields({
   company?: Company;
   showOptionalEvent?: boolean;
 }) {
+  const canStorePassword = useCanStorePassword();
   return (
     <div className="space-y-5">
       <section className="space-y-3">
@@ -221,7 +228,7 @@ export function CompanyFormFields({
       <section className="space-y-3 rounded-lg border border-border p-3">
         <SectionTitle
           title="ログイン情報"
-          description="マイページ・応募サイトの URL / ID（パスワードはこのアプリに保存しません）"
+          description="マイページ・応募サイトの URL / ID / パスワード（パスワードは暗号化して保存し、本人が「表示」を押したときだけ表示します）"
         />
         <Field label="マイページ / ログインURL">
           <div className="space-y-1.5">
@@ -242,6 +249,36 @@ export function CompanyFormFields({
               autoComplete="username"
               defaultValue={company?.login_id ?? ""}
             />
+          </Field>
+          <Field label="Password">
+            {canStorePassword ? (
+            <div className="space-y-1.5">
+              <Input
+                name="login_password"
+                type="password"
+                autoComplete="new-password"
+                defaultValue=""
+                placeholder={
+                  company?.has_login_password
+                    ? "保存済み（変えるときだけ入力）"
+                    : "入力すると暗号化して保存します"
+                }
+              />
+              {company?.has_login_password && (
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <input type="checkbox" name="clear_login_password" className="h-3.5 w-3.5" />
+                  保存済みのパスワードを消す
+                </label>
+              )}
+            </div>
+            ) : (
+              <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                今はパスワードを保存できません（暗号化の準備中です）。
+                {company?.has_login_password
+                  ? "保存済みのパスワードは、企業ページの「表示」で確認できます。"
+                  : ""}
+              </p>
+            )}
           </Field>
         </div>
       </section>

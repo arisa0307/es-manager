@@ -34,3 +34,15 @@ export const getFeatureFlags = cache(async (): Promise<FeatureFlags> => {
 export async function isFeatureEnabled(key: FeatureKey): Promise<boolean> {
   return (await getFeatureFlags())[key];
 }
+
+/**
+ * ログインパスワードを新しく保存できる状態か（暗号化の鍵があり、暗号化の列も DB にある）。
+ * どちらかが無い間は、入力欄を閉じて「今は保存できない」と表示する。
+ */
+export const canStoreLoginPassword = cache(async (): Promise<boolean> => {
+  const { isEncryptionKeyConfigured } = await import("@/lib/crypto/login-secret");
+  if (!isEncryptionKeyConfigured()) return false;
+  const supabase = await createClient();
+  const { error } = await supabase.from("companies").select("login_password_enc").limit(1);
+  return !error;
+});

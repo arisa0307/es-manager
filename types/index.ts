@@ -146,6 +146,8 @@ export type Company = {
   web_test_url: string | null;
   web_test_notes: string | null;
   login_id: string | null;
+  /** ログインパスワードが（暗号化して）保存されているか。値そのものは画面に渡さない */
+  has_login_password: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -323,6 +325,10 @@ export type CompanyInsert = {
   web_test_url?: string | null;
   web_test_notes?: string | null;
   login_id?: string | null;
+  /** 入力されたログインパスワード（平文）。サーバーで暗号化してから保存し、平文の列には書かない */
+  login_password?: string;
+  /** true なら保存済みのログインパスワードを消す */
+  clear_login_password?: boolean;
 };
 
 export type CompanyUpdate = Partial<CompanyInsert>;

@@ -9,9 +9,11 @@ import type { FeatureFlags } from "@/lib/features";
 export function AppShell({
   children,
   features,
+  canStorePassword,
 }: {
   children: React.ReactNode;
   features: FeatureFlags;
+  canStorePassword: boolean;
 }) {
   const pathname = usePathname();
   const isAuthPage = pathname === "/login" || pathname === "/signup";
@@ -25,7 +27,7 @@ export function AppShell({
   }
 
   return (
-    <FeaturesProvider flags={features}>
+    <FeaturesProvider flags={features} canStorePassword={canStorePassword}>
       <EnvBanner />
       <Sidebar />
       <main className="md:pl-52 min-h-screen pb-20 md:pb-0">
