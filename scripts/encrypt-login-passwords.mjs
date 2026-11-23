@@ -3,6 +3,8 @@
 // 使い方（~/Documents/dev で実行）:
 //   node scripts/encrypt-login-passwords.mjs check    … 件数を数えるだけ（書き込みなし）
 //   node scripts/encrypt-login-passwords.mjs encrypt  … 未移行の行を暗号化して書き込み、続けて verify
+//   node scripts/encrypt-login-passwords.mjs encrypt --only <企業id>
+//                                                      … その1件だけ暗号化する（本番の鍵と同じかの試し用）
 //   node scripts/encrypt-login-passwords.mjs verify   … 全件を復号して平文と一致するか確かめる（書き込みなし）
 //   node scripts/encrypt-login-passwords.mjs clear    … verify が全件一致したときだけ、平文の列を空にする
 //
@@ -110,7 +112,15 @@ if (mode === "check") {
 }
 
 if (mode === "encrypt") {
-  const rows = (await fetchRows()).filter((r) => !r.login_password_enc);
+  const onlyIdx = process.argv.indexOf("--only");
+  const onlyId = onlyIdx > 0 ? process.argv[onlyIdx + 1] : null;
+  if (onlyIdx > 0 && !onlyId) {
+    console.error("--only のあとに企業 id を指定してください");
+    process.exit(1);
+  }
+  const rows = (await fetchRows()).filter(
+    (r) => !r.login_password_enc && (!onlyId || r.id === onlyId)
+  );
   let written = 0;
   const failed = [];
   for (const r of rows) {
