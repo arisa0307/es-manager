@@ -4,6 +4,7 @@ import { OptionalDateField } from "@/components/ui/OptionalDateField";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { useCanStorePassword } from "@/components/providers/FeaturesProvider";
 import {
   COMPANY_EVENT_TYPES,
   COMPANY_EVENT_TYPE_LABELS,
@@ -75,6 +76,7 @@ export function CompanyFormFields({
   company?: Company;
   showOptionalEvent?: boolean;
 }) {
+  const canStorePassword = useCanStorePassword();
   return (
     <div className="space-y-5">
       <section className="space-y-3">
@@ -249,6 +251,7 @@ export function CompanyFormFields({
             />
           </Field>
           <Field label="Password">
+            {canStorePassword ? (
             <div className="space-y-1.5">
               <Input
                 name="login_password"
@@ -268,6 +271,14 @@ export function CompanyFormFields({
                 </label>
               )}
             </div>
+            ) : (
+              <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                今はパスワードを保存できません（暗号化の準備中です）。
+                {company?.has_login_password
+                  ? "保存済みのパスワードは、企業ページの「表示」で確認できます。"
+                  : ""}
+              </p>
+            )}
           </Field>
         </div>
       </section>

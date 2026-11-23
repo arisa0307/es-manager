@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Noto_Sans_JP } from "next/font/google";
 import { AppShell } from "@/components/layout/AppShell";
-import { getFeatureFlags } from "@/lib/features-server";
+import { canStoreLoginPassword, getFeatureFlags } from "@/lib/features-server";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import "./globals.css";
 
@@ -29,7 +29,10 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   // 利用者ごとの機能設定（未ログインなら既定値）
-  const features = await getFeatureFlags();
+  const [features, canStorePassword] = await Promise.all([
+    getFeatureFlags(),
+    canStoreLoginPassword(),
+  ]);
   return (
     <html
       lang="ja"
@@ -38,7 +41,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full bg-background text-foreground">
         <ThemeProvider>
-          <AppShell features={features}>{children}</AppShell>
+          <AppShell features={features} canStorePassword={canStorePassword}>{children}</AppShell>
         </ThemeProvider>
         <Analytics />
       </body>
